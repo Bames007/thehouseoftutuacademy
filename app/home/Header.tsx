@@ -363,13 +363,13 @@ const Header = () => {
                     </h3>
                     <div className="space-y-3 px-4">
                       <a
-                        href="tel:+2348100000000"
+                        href="tel:+2349112644027"
                         className="flex items-center gap-3 text-white/90 hover:text-white transition-colors"
                       >
                         <div className="p-2 rounded-lg bg-white/10">
                           <Phone className="w-4 h-4" />
                         </div>
-                        <span className="text-sm">+234 810 000 0000</span>
+                        <span className="text-sm">+234 911 264 4027</span>
                       </a>
                       <a
                         href="mailto:academy@houseoftutu.com"

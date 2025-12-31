@@ -1,3 +1,4 @@
+// components/Sections/CoursesShowcase.tsx
 "use client";
 import { motion } from "framer-motion";
 import { gothamOffice, italiana } from "@/app/utils/constants";
@@ -16,9 +17,11 @@ import {
   Briefcase,
   Lock,
   X,
-  Maximize2,
   Volume2,
   VolumeX,
+  Pause,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
@@ -29,8 +32,8 @@ const CoursesShowcase = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const modalVideoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   const courses = [
     {
@@ -153,7 +156,9 @@ const CoursesShowcase = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      if (videoContainerRef.current) {
+        videoContainerRef.current.requestFullscreen();
+      }
       setIsFullscreen(true);
     } else {
       document.exitFullscreen();
@@ -181,6 +186,26 @@ const CoursesShowcase = () => {
     return () =>
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  // Close modal on escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleCloseModal();
+      }
+    };
+
+    if (showVideoModal) {
+      document.addEventListener("keydown", handleEscape);
+      // Prevent body scroll when modal is open on mobile
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "auto";
+    };
+  }, [showVideoModal]);
 
   return (
     <section
@@ -401,6 +426,7 @@ const CoursesShowcase = () => {
                     fill
                     className="object-cover"
                     priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
 
                   {/* Play button overlay */}
@@ -411,42 +437,42 @@ const CoursesShowcase = () => {
                   >
                     <div className="relative">
                       {/* Animated ring */}
-                      <div className="absolute inset-0 w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white/30 animate-ping group-hover:animate-none"></div>
+                      <div className="absolute inset-0 w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-white/30 animate-ping group-hover:animate-none"></div>
 
                       {/* Play button */}
-                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
-                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                          <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-white ml-1" />
+                      <div className="w-14 h-14 md:w-18 md:h-18 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                          <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-white ml-1" />
                         </div>
                       </div>
                     </div>
 
-                    {/* Play text */}
-                    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-[#691C33]/80 backdrop-blur-sm rounded-lg">
+                    {/* Play text - hidden on mobile, visible on tablet+ */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-[#691C33]/80 backdrop-blur-sm rounded-lg hidden sm:block">
                       <p className="text-white text-sm font-semibold">
                         PLAY PREVIEW
                       </p>
                     </div>
                   </button>
                 </div>
-              </div>
 
-              {/* Bottom info bar (always visible) */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 md:p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  {(() => {
-                    const IconComponent = courses[activeLevel].icon;
-                    return (
-                      <IconComponent className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                    );
-                  })()}
-                  <span className="text-white text-sm md:text-base font-semibold">
-                    {courses[activeLevel].title}
-                  </span>
+                {/* Bottom info bar */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 md:p-6">
+                  <div className="flex items-center gap-2 mb-1 md:mb-2">
+                    {(() => {
+                      const IconComponent = courses[activeLevel].icon;
+                      return (
+                        <IconComponent className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                      );
+                    })()}
+                    <span className="text-white text-sm md:text-base font-semibold truncate">
+                      {courses[activeLevel].title}
+                    </span>
+                  </div>
+                  <p className="text-gray-300 text-xs md:text-sm line-clamp-2">
+                    {courses[activeLevel].videoDescription}
+                  </p>
                 </div>
-                <p className="text-gray-300 text-xs md:text-sm">
-                  {courses[activeLevel].videoDescription}
-                </p>
               </div>
             </div>
 
@@ -482,10 +508,10 @@ const CoursesShowcase = () => {
                   <motion.div
                     key={item.label}
                     whileHover={{ scale: 1.05, y: -2 }}
-                    className="flex flex-col items-center p-3 rounded-xl border border-[#691C33]/10 hover:border-[#691C33]/20 hover:shadow-md transition-all bg-white/50 backdrop-blur-sm"
+                    className="flex flex-col items-center p-2 md:p-3 rounded-xl border border-[#691C33]/10 hover:border-[#691C33]/20 hover:shadow-md transition-all bg-white/50 backdrop-blur-sm"
                   >
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-[#691C33]/10 flex items-center justify-center mb-2">
-                      <item.icon className="w-5 h-5 md:w-6 md:h-6 text-[#691C33]" />
+                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg bg-[#691C33]/10 flex items-center justify-center mb-1 md:mb-2">
+                      <item.icon className="w-4 h-4 md:w-5 md:h-5 md:w-6 md:h-6 text-[#691C33]" />
                     </div>
                     <span className="font-medium text-[#691C33] text-xs md:text-sm text-center">
                       {item.label}
@@ -518,7 +544,7 @@ const CoursesShowcase = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {courses.map((course, index) => (
               <motion.div
                 key={course.level}
@@ -530,10 +556,6 @@ const CoursesShowcase = () => {
                   course.status === "available"
                     ? "border-[#691C33] shadow-lg"
                     : "border-[#691C33]/10 hover:border-[#691C33]/30"
-                } ${
-                  course.level === "Commercial"
-                    ? "md:col-span-4 lg:col-span-1"
-                    : ""
                 }`}
               >
                 {/* Pattern Background */}
@@ -565,11 +587,11 @@ const CoursesShowcase = () => {
 
                 <div className="space-y-2 relative z-10">
                   <div className="flex items-center text-[#691C33]/70 text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-[#691C33]" />
+                    <Clock className="w-3 h-3 md:w-4 h-4 mr-2 text-[#691C33]" />
                     {course.duration}
                   </div>
                   {course.status === "available" && (
-                    <div className="text-lg font-bold text-[#691C33]">
+                    <div className="text-base md:text-lg font-bold text-[#691C33]">
                       {course.price}
                     </div>
                   )}
@@ -595,18 +617,21 @@ const CoursesShowcase = () => {
 
       {/* Video Modal */}
       {showVideoModal && (
-        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-6xl bg-black rounded-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center p-0 md:p-4">
+          <div
+            ref={videoContainerRef}
+            className="relative w-full h-full md:w-full md:h-auto md:max-w-6xl bg-black md:rounded-2xl overflow-hidden"
+          >
             {/* Close Button */}
             <button
               onClick={handleCloseModal}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="absolute top-3 right-3 md:top-4 md:right-4 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
             {/* Video Container */}
-            <div className="relative aspect-video">
+            <div className="relative w-full h-full">
               <video
                 ref={modalVideoRef}
                 className="w-full h-full object-contain"
@@ -620,39 +645,36 @@ const CoursesShowcase = () => {
               </video>
 
               {/* Custom Controls Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 md:p-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 md:gap-4">
                     {/* Play/Pause Button */}
                     <button
                       onClick={toggleVideoPlay}
-                      className="w-10 h-10 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#8B2846] transition-colors"
+                      className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#8B2846] transition-colors"
                     >
                       {isVideoPlaying ? (
-                        <div className="flex items-center justify-center w-4 h-4">
-                          <div className="w-1 h-4 bg-white mx-0.5"></div>
-                          <div className="w-1 h-4 bg-white mx-0.5"></div>
-                        </div>
+                        <Pause className="w-4 h-4 md:w-5 md:h-5 text-white fill-white" />
                       ) : (
-                        <Play className="w-4 h-4 text-white fill-white ml-1" />
+                        <Play className="w-4 h-4 md:w-5 md:h-5 text-white fill-white ml-1" />
                       )}
                     </button>
 
                     {/* Mute/Unmute Button */}
                     <button
                       onClick={toggleMute}
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
                     >
                       {isVideoMuted ? (
-                        <VolumeX className="w-4 h-4 text-white" />
+                        <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" />
                       ) : (
-                        <Volume2 className="w-4 h-4 text-white" />
+                        <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
                       )}
                     </button>
 
-                    {/* Video Info */}
-                    <div className="ml-4">
-                      <h3 className="text-white font-semibold">
+                    {/* Video Info - hidden on mobile, visible on tablet+ */}
+                    <div className="hidden md:block ml-2">
+                      <h3 className="text-white font-semibold text-lg">
                         {courses[activeLevel].title}
                       </h3>
                       <p className="text-gray-300 text-sm">
@@ -664,10 +686,24 @@ const CoursesShowcase = () => {
                   {/* Fullscreen Button */}
                   <button
                     onClick={toggleFullscreen}
-                    className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
                   >
-                    <Maximize2 className="w-4 h-4 text-white" />
+                    {isFullscreen ? (
+                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    )}
                   </button>
+                </div>
+
+                {/* Video Info for Mobile */}
+                <div className="md:hidden mt-2">
+                  <h3 className="text-white font-semibold text-sm truncate">
+                    {courses[activeLevel].title}
+                  </h3>
+                  <p className="text-gray-300 text-xs truncate">
+                    {courses[activeLevel].videoDescription}
+                  </p>
                 </div>
               </div>
             </div>

@@ -28,9 +28,6 @@ export default function HomePage() {
       <PerfumeFunFacts />
       <FAQ />
       <Contact />
-      {/* <Courses /> */}
-      {/* <Tuitio /> */}
-      {/* <EnrollmentCT /> */}
     </div>
   );
 }

@@ -17,7 +17,10 @@ import {
 
 const Founder = () => {
   return (
-    <section id="founder" className="py-16 md:py-24 relative overflow-hidden">
+    <section
+      id="founder"
+      className="py-16 md:py-24 pb-28 md:pb-36 relative overflow-hidden"
+    >
       {/* Solid Color Background */}
       <div className="absolute inset-0 bg-[#691C33]"></div>
 
@@ -34,7 +37,7 @@ const Founder = () => {
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="relative order-2 lg:order-1"
+            className="relative order-2 lg:order-1 mb-12 md:mb-16 lg:mb-0"
           >
             {/* Main Image Container */}
             <div className="relative w-full max-w-md mx-auto lg:max-w-none lg:mx-0 aspect-square rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl">
@@ -67,7 +70,7 @@ const Founder = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="absolute -bottom-4 -right-2 md:-bottom-6 md:-right-4 bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl max-w-[90%] md:max-w-xs border-l-4 border-[#691C33]"
+              className="absolute -bottom-20 -right-2 md:-bottom-20 md:-right-4 bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-2xl max-w-[90%] md:max-w-xs border-l-4 border-[#691C33]"
             >
               <Quote className="w-6 h-6 md:w-8 md:h-8 text-[#691C33] mb-2 md:mb-3" />
               <p

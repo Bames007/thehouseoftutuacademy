@@ -379,7 +379,7 @@ const Header = () => {
                           <Mail className="w-4 h-4" />
                         </div>
                         <span className="text-sm">
-                          academy@thehouseoftutu.com
+                          academy@thehouseoftutuacademy.com
                         </span>
                       </a>
                     </div>

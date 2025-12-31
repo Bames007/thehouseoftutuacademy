@@ -132,7 +132,7 @@ const Footer = () => {
                 <div>
                   <div className="font-semibold">Email Us</div>
                   <div className="text-white/80">
-                    academy@thehouseoftutu.com
+                    academy@thehouseoftutuacademy.com
                   </div>
                 </div>
               </div>
@@ -360,7 +360,8 @@ const Footer = () => {
               All rights reserved.
             </p>
             <p className="text-white/50 text-xs mt-1">
-              Abuja, Nigeria • academy@thehouseoftutu.com • +234 911 264 4027
+              Abuja, Nigeria • academy@thehouseoftutuacademy.com • +234 911 264
+              4027
             </p>
           </div>
 

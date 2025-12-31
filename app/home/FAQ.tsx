@@ -89,7 +89,7 @@ const FAQ = () => {
     {
       question: "How do I request a refund?",
       answer:
-        "Send a written request to academy@thehouseoftutu.com with your full name, proof of payment, and reason. Refunds are processed in 7-14 business days and issued back through the original payment method. Please review our complete Refund Policy before enrolling.",
+        "Send a written request to academy@thehouseoftutuacademy.com with your full name, proof of payment, and reason. Refunds are processed in 7-14 business days and issued back through the original payment method. Please review our complete Refund Policy before enrolling.",
       category: "refunds",
       icon: FileText,
     },
@@ -409,7 +409,7 @@ const FAQ = () => {
                         Email for Refund Inquiries
                       </div>
                       <div className="text-[#691C33]/80">
-                        academy@thehouseoftutu.com
+                        academy@thehouseoftutuacademy.com
                       </div>
                     </div>
                   </div>

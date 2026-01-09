@@ -90,7 +90,7 @@ const Contact = () => {
     {
       icon: Youtube,
       label: "YouTube",
-      href: "https://youtube.com/@houseoftutu",
+      href: "https://youtube.com/@thehouseoftutu",
       color: "hover:bg-red-600/20",
     },
   ];
@@ -400,7 +400,7 @@ const Contact = () => {
                   {
                     icon: Mail,
                     title: "Email Address",
-                    details: "academy@thehouseoftutuacademy.com",
+                    details: "info@thehouseoftutuacademy.com",
                     description: "Response within 2-4 hours",
                   },
                   {

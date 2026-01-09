@@ -12,6 +12,153 @@ if (!resendApiKey) {
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
+// Email configuration
+const EMAIL_CONFIG = {
+  from:
+    process.env.EMAIL_FROM || "House of Tutu <info@thehouseoftutuacademy.com>",
+  adminEmail: process.env.ADMIN_EMAIL || "info@thehouseoftutuacademy.com",
+  replyTo: process.env.REPLY_TO_EMAIL || "info@thehouseoftutuacademy.com",
+};
+
+// Helper function to send student confirmation email
+async function sendStudentConfirmation(
+  data: any
+): Promise<{ success: boolean; emailId: string | null; error?: string }> {
+  if (!resend) {
+    console.warn("Resend not configured, skipping student email");
+    return { success: false, emailId: null, error: "Resend not configured" };
+  }
+
+  try {
+    console.log(`Attempting to send student email to: ${data.email}`);
+
+    const emailResponse = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: data.email,
+      subject: `🎓 Enrollment Confirmation - ${data.receiptNumber}`,
+      html: generateStudentEmailHTML(data),
+      text: generateStudentEmailText(data),
+      replyTo: EMAIL_CONFIG.replyTo,
+      tags: [
+        { name: "category", value: "enrollment" },
+        { name: "enrollmentId", value: data.enrollmentId },
+      ],
+    });
+
+    console.log("Resend email response:", emailResponse);
+
+    if (emailResponse.error) {
+      console.error("Resend email error:", emailResponse.error);
+      return {
+        success: false,
+        emailId: null,
+        error: emailResponse.error.message || "Failed to send email",
+      };
+    }
+
+    console.log(
+      `Student confirmation email sent successfully to ${data.email}, ID: ${emailResponse.data?.id}`
+    );
+    return { success: true, emailId: emailResponse.data?.id || null };
+  } catch (error: any) {
+    console.error("Error sending student confirmation email:", error);
+    return {
+      success: false,
+      emailId: null,
+      error: error.message || "Unknown error sending email",
+    };
+  }
+}
+
+// Helper function to send admin notification email
+async function sendAdminNotification(
+  data: any
+): Promise<{ success: boolean; emailId: string | null; error?: string }> {
+  if (!resend) {
+    console.warn("Resend not configured, skipping admin email");
+    return { success: false, emailId: null, error: "Resend not configured" };
+  }
+
+  try {
+    console.log(
+      `Attempting to send admin email to: ${EMAIL_CONFIG.adminEmail}`
+    );
+
+    const emailResponse = await resend.emails.send({
+      from: EMAIL_CONFIG.from,
+      to: EMAIL_CONFIG.adminEmail,
+      subject: `🚨 New Enrollment: ${data.fullName} - ${data.program}`,
+      html: generateAdminEmailHTML(data),
+      text: generateAdminEmailText(data),
+      replyTo: EMAIL_CONFIG.replyTo,
+      tags: [
+        { name: "category", value: "admin-notification" },
+        { name: "enrollmentId", value: data.enrollmentId },
+      ],
+    });
+
+    console.log("Resend admin email response:", emailResponse);
+
+    if (emailResponse.error) {
+      console.error("Resend admin email error:", emailResponse.error);
+      return {
+        success: false,
+        emailId: null,
+        error: emailResponse.error.message || "Failed to send admin email",
+      };
+    }
+
+    console.log(
+      `Admin notification email sent successfully to ${EMAIL_CONFIG.adminEmail}, ID: ${emailResponse.data?.id}`
+    );
+    return { success: true, emailId: emailResponse.data?.id || null };
+  } catch (error: any) {
+    console.error("Error sending admin notification email:", error);
+    return {
+      success: false,
+      emailId: null,
+      error: error.message || "Unknown error sending admin email",
+    };
+  }
+}
+
+// Add text version for admin email
+function generateAdminEmailText(data: any): string {
+  return `
+    NEW ENROLLMENT RECEIVED - REQUIRES VERIFICATION
+    
+    Enrollment ID: ${data.enrollmentId}
+    Receipt Number: ${data.receiptNumber}
+    
+    STUDENT INFORMATION:
+    - Name: ${data.fullName}
+    - Email: ${data.email}
+    - Phone: ${data.phoneNumber}
+    - City: ${data.city || "Not provided"}
+    - Country: ${data.country || "Not provided"}
+    
+    ENROLLMENT DETAILS:
+    - Program: ${data.program}
+    - Delivery Format: ${data.deliveryFormat}
+    - Enrollment Date: ${new Date(data.submissionDate).toLocaleString()}
+    
+    PAYMENT INFORMATION:
+    - Payment Method: ${data.paymentMethod}
+    - Registration Fee: ₦${data.registrationFee?.toLocaleString() || "0"}
+    - Course Fee: ₦${data.courseFee?.toLocaleString() || "0"}
+    - Total Paid: ₦${data.totalAmount?.toLocaleString() || "0"}
+    
+    ADDITIONAL INFORMATION:
+    - Has Business: ${data.hasBusiness === "yes" ? "Yes" : "No"}
+    ${data.businessName ? `- Business Name: ${data.businessName}` : ""}
+    
+    STUDENT EXPECTATIONS:
+    "${data.expectations || "No expectations provided"}"
+    
+    This is an automated notification. Please verify payment and update enrollment status.
+  `;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const enrollmentData = await request.json();
@@ -87,29 +234,54 @@ export async function POST(request: NextRequest) {
     let adminEmailSuccess = false;
     let studentEmailId = null;
     let adminEmailId = null;
+    let emailError = null;
 
     if (resend) {
       try {
+        console.log("Attempting to send emails via Resend...");
+
         // Send student confirmation
         const studentEmail = await sendStudentConfirmation(completeData);
         studentEmailSuccess = studentEmail.success;
         studentEmailId = studentEmail.emailId;
 
-        // Send admin notification
-        const adminEmail = await sendAdminNotification(completeData);
-        adminEmailSuccess = adminEmail.success;
-        adminEmailId = adminEmail.emailId;
+        if (!studentEmailSuccess) {
+          console.warn("Student email failed:", studentEmail.error);
+          emailError = studentEmail.error;
+        }
 
-        // Update email status in Firebase if emails were sent
-        if (studentEmailSuccess) {
-          const enrollmentRef = ref(database, `enrollments/${enrollmentId}`);
-          await set(enrollmentRef, {
-            ...completeData,
-            emailSent: true,
-            studentEmailId,
-            adminEmailId,
-            updatedAt: Date.now(),
-          });
+        // Send admin notification (separate try-catch to not block student email)
+        try {
+          const adminEmail = await sendAdminNotification(completeData);
+          adminEmailSuccess = adminEmail.success;
+          adminEmailId = adminEmail.emailId;
+
+          if (!adminEmailSuccess) {
+            console.warn("Admin email failed:", adminEmail.error);
+          }
+        } catch (adminError) {
+          console.error("Admin email error (non-critical):", adminError);
+          // Continue even if admin email fails
+        }
+
+        // Update email status in Firebase if at least student email was attempted
+        if (studentEmailId || adminEmailId) {
+          try {
+            const enrollmentRef = ref(database, `enrollments/${enrollmentId}`);
+            await set(enrollmentRef, {
+              ...completeData,
+              emailSent: studentEmailSuccess,
+              studentEmailId,
+              adminEmailId,
+              emailError,
+              updatedAt: Date.now(),
+            });
+          } catch (updateError) {
+            console.error(
+              "Error updating email status in Firebase:",
+              updateError
+            );
+          }
         }
       } catch (emailError) {
         console.error("Email sending error:", emailError);
@@ -125,6 +297,7 @@ export async function POST(request: NextRequest) {
       receiptNumber,
       emailSent: studentEmailSuccess,
       adminNotified: adminEmailSuccess,
+      emailError,
       message: "Enrollment processed successfully",
     });
   } catch (error: any) {
@@ -139,9 +312,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// ... rest of your email functions remain the same
-
 function generateStudentEmailHTML(data: any): string {
   return `
     <!DOCTYPE html>
@@ -221,7 +391,7 @@ function generateStudentEmailHTML(data: any): string {
           <div class="section">
             <h3>📞 Need Assistance?</h3>
             <p>WhatsApp: +234 911 264 4027</p>
-            <p>Email: enrollment@houseoftutu.com</p>
+            <p>Email: info@thehouseoftutuacademy.com</p>
             <p>Hours: Monday - Friday, 9AM - 5PM</p>
           </div>
         </div>
@@ -267,7 +437,7 @@ function generateStudentEmailText(data: any): string {
     
     NEED ASSISTANCE?
     WhatsApp: +234 911 264 4027
-    Email: enrollment@houseoftutu.com
+    Email: info@thehouseoftutuacademy.com
     Hours: Monday - Friday, 9AM - 5PM
     
     The House of Tutu Perfumery Academy

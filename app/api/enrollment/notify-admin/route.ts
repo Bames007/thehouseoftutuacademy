@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
 async function sendAdminNotification(data: any, enrollmentId: string) {
   try {
     await resend.emails.send({
-      from: "Enrollment System <info@houseoftutuacademy.com>",
-      to: ["info@houseoftutuacademy.com", "info@houseoftutuacademy.com"],
+      from: "Enrollment System <info@thehouseoftutuacademy.com>",
+      to: ["info@thehouseoftutuacademy.com", "info@thehouseoftutuacademy.com"],
       subject: `New Enrollment - ${data.receiptNumber}`,
       html: generateAdminNotificationHTML(data, enrollmentId),
     });

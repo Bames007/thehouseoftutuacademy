@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
 
     // Send confirmation email to student
     const emailResponse = await resend.emails.send({
-      from: "The House of Tutu <info@houseoftutuacademy.com>",
+      from: "The House of Tutu <info@thehouseoftutuacademy.com>",
       to: [enrollmentData.email],
-      bcc: ["info@houseoftutuacademy.com"],
+      bcc: ["info@thehouseoftutuacademy.com"],
       subject: `Enrollment Confirmation - ${enrollmentData.receiptNumber}`,
       html: generateEnrollmentEmailHTML(enrollmentData),
       text: generateEnrollmentEmailText(enrollmentData),
@@ -109,7 +109,7 @@ function generateEnrollmentEmailHTML(data: any): string {
           <div class="section">
             <h3>📞 Need Assistance?</h3>
             <p>WhatsApp: +234 911 264 4027</p>
-            <p>Email: info@houseoftutuacademy.com</p>
+            <p>Email: info@thehouseoftutuacademy.com</p>
             <p>Hours: Monday - Friday, 9AM - 5PM</p>
           </div>
         </div>
@@ -155,7 +155,7 @@ function generateEnrollmentEmailText(data: any): string {
     
     NEED ASSISTANCE?
     WhatsApp: +234 911 264 4027
-    Email: info@houseoftutuacademy.com
+    Email: info@thehouseoftutuacademy.com
     Hours: Monday - Friday, 9AM - 5PM
     
     The House of Tutu Perfumery Academy

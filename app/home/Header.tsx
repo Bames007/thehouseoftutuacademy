@@ -372,14 +372,14 @@ const Header = () => {
                         <span className="text-sm">+234 911 264 4027</span>
                       </a>
                       <a
-                        href="mailto:academy@houseoftutu.com"
+                        href="mailto:info@thehouseoftutuacademy.com"
                         className="flex items-center gap-3 text-white/90 hover:text-white transition-colors"
                       >
                         <div className="p-2 rounded-lg bg-white/10">
                           <Mail className="w-4 h-4" />
                         </div>
                         <span className="text-sm">
-                          academy@thehouseoftutuacademy.com
+                          info@thehouseoftutuacademy.com
                         </span>
                       </a>
                     </div>

@@ -338,7 +338,7 @@ const Hero = () => {
                     (₦650K course + ₦20K reg)
                   </p>
                   <p className="text-gray-400 text-[8px] sm:text-[10px] md:text-xs">
-                    Physical training in Lagos
+                    Physical training in Abuja
                   </p>
                 </motion.div>
 

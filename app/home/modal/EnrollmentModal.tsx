@@ -2,7 +2,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { gothamOffice, italiana, alexBrush } from "@/app/utils/constants";
+import { alexBrush } from "@/app/utils/constants";
 import Image from "next/image";
 import {
   X,
@@ -44,18 +44,16 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
   const [signatureDate, setSignatureDate] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [emailSent, setEmailSent] = useState(false);
-  const [applicationPaid, setApplicationPaid] = useState(false);
+  const [, setApplicationPaid] = useState(false);
   const [totalPaid, setTotalPaid] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fixed registration/application fee
-  const REGISTRATION_FEE = 20000; // ₦20,000 registration fee (non-refundable)
+  const REGISTRATION_FEE = 20000;
   const COURSE_FEES = {
     "in-class": 650000,
     online: 500000,
   };
 
-  // Initialize form data
   const [formData, setFormData] = useState({
     // Personal Information
     fullName: "",
@@ -82,14 +80,12 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
 
   const totalSteps = 5;
 
-  // Calculate total amount
   const calculateTotal = () => {
     const courseFee =
       COURSE_FEES[formData.deliveryFormat as keyof typeof COURSE_FEES] || 0;
     return REGISTRATION_FEE + courseFee;
   };
 
-  // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
@@ -98,13 +94,11 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }).format(amount);
   };
 
-  // Set today's date as default signature date
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setSignatureDate(today);
   }, []);
 
-  // Validate signature matches full name
   const validateSignature = () => {
     if (
       formData.fullName.trim().toLowerCase() !== signature.trim().toLowerCase()
@@ -145,7 +139,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  // Handle radio button changes
   const handleRadioChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -162,20 +155,10 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  // Handle file upload click
   const handleFileUploadClick = () => {
     fileInputRef.current?.click();
   };
 
-  // Generate receipt number
-  const generateReceiptNumber = () => {
-    return `TUTU-${Date.now().toString().slice(-8)}-${Math.random()
-      .toString(36)
-      .substr(2, 4)
-      .toUpperCase()}`;
-  };
-
-  // Validate form at each step
   const validateStep = (step: number): boolean => {
     const errors: Record<string, string> = {};
 
@@ -228,7 +211,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle continue to next step
   const handleContinue = () => {
     if (validateStep(currentStep)) {
       if (currentStep < totalSteps) {
@@ -244,7 +226,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  // Handle back to previous step
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
@@ -252,78 +233,93 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  // Simulate sending email
-  const sendConfirmationEmail = async (email: string) => {
-    console.log(`Sending confirmation email to ${email}`);
-    // In production, integrate with your email service (SendGrid, Resend, etc.)
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+  const generateReceiptNumber = () => {
+    const date = new Date();
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+
+    return `TUTU-${year}${month}${day}-${random}`;
   };
 
-  // Handle form submission
   const handleSubmit = async () => {
     if (!validateStep(5)) return;
 
     setIsSubmitting(true);
 
     try {
-      // Generate receipt number
       const receiptNumber = generateReceiptNumber();
 
-      // Create FormData for file upload
-      const submissionData = new FormData();
+      // Prepare submission data
+      const submissionData = {
+        // Personal Information
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email,
+        dateOfBirth: formData.dateOfBirth,
+        city: formData.city,
+        country: formData.country,
 
-      // Append form data
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          if (key === "proofOfPayment" && value instanceof File) {
-            submissionData.append(key, value);
-          } else {
-            submissionData.append(key, String(value));
-          }
-        }
-      });
+        // Course Selection
+        program: formData.program,
+        deliveryFormat: formData.deliveryFormat,
 
-      // Append additional data
-      submissionData.append("registrationFee", REGISTRATION_FEE.toString());
-      submissionData.append("totalAmount", calculateTotal().toString());
-      submissionData.append("agreedToTerms", String(agreedToTerms));
-      submissionData.append("agreedToRefund", String(agreedToRefund));
-      submissionData.append("signature", signature);
-      submissionData.append("signatureDate", signatureDate);
-      submissionData.append("receiptNumber", receiptNumber);
-      submissionData.append("submissionDate", new Date().toISOString());
+        // Business Background
+        hasBusiness: formData.hasBusiness,
+        businessName: formData.businessName || "",
+        expectations: formData.expectations,
 
-      // Simulate API call
-      console.log("Submitting enrollment form:", {
-        ...formData,
+        // Payment Information
+        paymentMethod: formData.paymentMethod,
+        paymentReceiptNumber: formData.paymentReceiptNumber || "",
+
+        // Fees
         registrationFee: REGISTRATION_FEE,
+        courseFee:
+          COURSE_FEES[formData.deliveryFormat as keyof typeof COURSE_FEES],
         totalAmount: calculateTotal(),
-        receiptNumber,
+
+        // Agreement
         agreedToTerms,
         agreedToRefund,
         signature,
         signatureDate,
+
+        // Metadata
+        receiptNumber,
+      };
+
+      // Use the single API endpoint
+      const response = await fetch("/api/enrollment/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
       });
 
-      // Simulate sending confirmation email
-      await sendConfirmationEmail(formData.email);
-      setEmailSent(true);
+      const result = await response.json();
+      console.log("API Response:", result);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || `HTTP ${response.status}: ${response.statusText}`
+        );
+      }
 
-      // Success
+      setEmailSent(result.emailSent);
       setSubmitSuccess(true);
 
-      // Reset form after 5 seconds and close modal
       setTimeout(() => {
         resetForm();
         onClose();
       }, 5000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submission error:", error);
       setFormErrors({
         submit:
+          error.message ||
           "There was an error submitting your enrollment. Please try again.",
       });
     } finally {
@@ -331,7 +327,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  // Reset form
   const resetForm = () => {
     setCurrentStep(1);
     setFormData({
@@ -382,7 +377,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose, isSubmitting]);
 
-  // Steps content - UPDATED WITH REGISTRATION FEE
   const steps = [
     {
       title: "Personal Information",
@@ -572,7 +566,7 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                     ₦650,000
                   </div>
                   <div className="text-sm text-[#691C33]/60 mt-2">
-                    Hands-on training in Lagos
+                    Hands-on training in Abuja
                   </div>
                 </div>
               </button>

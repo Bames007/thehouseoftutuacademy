@@ -47,7 +47,7 @@ const FAQ = () => {
     {
       question: "What's the difference between in-class and online?",
       answer:
-        "In-Class (₦650,000): Physical learning in Lagos with hands-on demonstrations and direct interaction. Online (₦500,000): Live Zoom classes from anywhere, same curriculum, interactive sessions, assignments, and certificate.",
+        "In-Class (₦650,000): Physical learning in Abuja with hands-on demonstrations and direct interaction. Online (₦500,000): Live Zoom classes from anywhere, same curriculum, interactive sessions, assignments, and certificate.",
       category: "format",
       icon: Users,
     },

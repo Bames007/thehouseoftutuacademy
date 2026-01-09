@@ -33,7 +33,7 @@ const StudentSuccess = () => {
       testimonial:
         "I went from mixing oils at home to supplying luxury hotels across Nigeria. The academy's business blueprint transformed my hobby into a thriving enterprise.",
       image: "/student-1.jpg",
-      location: "Lagos, Nigeria",
+      location: "Abuja, Nigeria",
       category: "Luxury Hospitality Supplier",
     },
     {

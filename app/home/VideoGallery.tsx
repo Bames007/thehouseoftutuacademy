@@ -9,18 +9,17 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
-  Sparkles,
   Clock,
-  BookOpen,
   Eye,
   User,
   Video,
-  Star,
   GraduationCap,
   TrendingUp,
   Volume2,
   VolumeX,
   Pause,
+  FlaskRound,
+  BookOpen,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
@@ -42,11 +41,11 @@ const VideoGallery = () => {
   ];
 
   const videoCategories = [
-    { id: "all", label: "All Videos", icon: Video },
-    { id: "lessons", label: "Class Lessons", icon: GraduationCap },
-    { id: "testimonials", label: "Student Testimonials", icon: User },
-    { id: "process", label: "Creation Process", icon: Sparkles },
-    { id: "business", label: "Business Training", icon: TrendingUp },
+    { id: "all", label: "All", icon: Video },
+    { id: "lessons", label: "Lessons", icon: GraduationCap },
+    { id: "testimonials", label: "Stories", icon: User },
+    { id: "process", label: "Process", icon: FlaskRound },
+    { id: "business", label: "Business", icon: TrendingUp },
   ];
 
   const videos = [
@@ -77,9 +76,9 @@ const VideoGallery = () => {
     },
     {
       id: 3,
-      title: "Student Success Story - From Zero to ₦5M",
+      title: "From Zero to ₦5M — A Student Story",
       category: "testimonials",
-      description: "How our graduate built a successful fragrance brand",
+      description: "How a graduate built a successful fragrance brand",
       videoUrl: "/video/preview-video-three.mp4",
       thumbnail: courseImages[2],
       duration: "6:18",
@@ -113,9 +112,9 @@ const VideoGallery = () => {
     },
     {
       id: 6,
-      title: "Live Class Recording - Note Blending",
+      title: "Live Class — Note Blending",
       category: "lessons",
-      description: "Real-time class on blending top, middle, and base notes",
+      description: "Real-time class on top, middle, and base notes",
       videoUrl: "/video/preview-video-two.mp4",
       thumbnail: courseImages[1],
       duration: "22:15",
@@ -137,9 +136,9 @@ const VideoGallery = () => {
     },
     {
       id: 8,
-      title: "Scent Memory & Emotional Connection",
+      title: "Scent Memory & Emotion",
       category: "process",
-      description: "Understanding how scents create lasting memories",
+      description: "How scents create lasting memories",
       videoUrl: "/video/commercial.mp4",
       thumbnail: courseImages[3],
       duration: "11:30",
@@ -149,7 +148,7 @@ const VideoGallery = () => {
     },
     {
       id: 9,
-      title: "Advanced Marketing for Perfume Brands",
+      title: "Marketing for Perfume Brands",
       category: "business",
       description: "Digital marketing strategies for fragrance businesses",
       videoUrl: "/video/preview-video-one.mp4",
@@ -171,18 +170,18 @@ const VideoGallery = () => {
     : null;
 
   const nextVideo = () => {
-    if (selectedVideo === null || !selectedVideoData) return;
+    if (selectedVideo === null) return;
     const currentIndex = filteredVideos.findIndex(
-      (v) => v.id === selectedVideo
+      (v) => v.id === selectedVideo,
     );
     const nextIndex = (currentIndex + 1) % filteredVideos.length;
     setSelectedVideo(filteredVideos[nextIndex].id);
   };
 
   const prevVideo = () => {
-    if (selectedVideo === null || !selectedVideoData) return;
+    if (selectedVideo === null) return;
     const currentIndex = filteredVideos.findIndex(
-      (v) => v.id === selectedVideo
+      (v) => v.id === selectedVideo,
     );
     const prevIndex =
       (currentIndex - 1 + filteredVideos.length) % filteredVideos.length;
@@ -190,38 +189,30 @@ const VideoGallery = () => {
   };
 
   const toggleVideoPlay = () => {
-    if (videoRef.current) {
-      if (isVideoPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsVideoPlaying(!isVideoPlaying);
+    if (!videoRef.current) return;
+    if (isVideoPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(console.error);
     }
+    setIsVideoPlaying(!isVideoPlaying);
   };
 
   const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsVideoMuted(!isVideoMuted);
-    }
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setIsVideoMuted(!isVideoMuted);
   };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      if (videoContainerRef.current) {
-        videoContainerRef.current.requestFullscreen();
-      }
-      setIsFullscreen(true);
+      videoContainerRef.current?.requestFullscreen().catch(console.error);
     } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+      document.exitFullscreen().catch(console.error);
     }
   };
 
-  const handleVideoEnd = () => {
-    setIsVideoPlaying(false);
-  };
+  const handleVideoEnd = () => setIsVideoPlaying(false);
 
   const handleCloseModal = () => {
     setSelectedVideo(null);
@@ -240,241 +231,230 @@ const VideoGallery = () => {
   }, [selectedVideo]);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleCloseModal();
-      }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCloseModal();
+      if (e.key === "ArrowRight") nextVideo();
+      if (e.key === "ArrowLeft") prevVideo();
     };
-
     if (selectedVideo !== null) {
-      document.addEventListener("keydown", handleEscape);
+      document.addEventListener("keydown", onKey);
       document.body.style.overflow = "hidden";
     }
-
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "auto";
     };
   }, [selectedVideo]);
 
   return (
-    <section className="py-16 md:py-24 bg-white relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.09]"></div>
+    <section
+      id="gallery"
+      className="relative overflow-hidden py-14 md:py-24"
+      style={{ backgroundColor: "#ffffff" }}
+    >
+      {/* Section pattern */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url('/pattern.png')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.05,
+          zIndex: 0,
+        }}
+      />
 
-      {/* Gradient Orbs */}
-      <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-gradient-to-br from-[#691C33]/5 to-transparent rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 md:w-96 md:h-96 bg-gradient-to-tr from-[#691C33]/5 to-transparent rounded-full blur-3xl" />
-
-      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12 md:mb-16"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 md:px-5 md:py-3 rounded-full border border-[#691C33]/10 mb-4 md:mb-6"
-          >
-            <Sparkles className="w-4 h-4 text-[#691C33]" />
-            <span
-              className={`text-xs md:text-sm font-semibold text-[#691C33] tracking-wider ${gothamOffice.className}`}
-            >
-              FREE MASTERCLASS CONTENT
-            </span>
-          </motion.div>
-
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className={`text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-[#691C33] mb-4 md:mb-6 ${italiana.className}`}
-          >
-            Watch & Learn For Free
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className={`text-base md:text-lg lg:text-xl text-[#691C33]/80 max-w-3xl mx-auto ${gothamOffice.className} font-light leading-relaxed px-4`}
-          >
-            Experience our teaching style with free video lessons from our
-            curriculum. See why our graduates succeed in the fragrance industry.
-          </motion.p>
-        </motion.div>
-
-        {/* Category Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-wrap justify-center gap-2 md:gap-3 mb-8 md:mb-12 px-2"
+          className="text-center mb-8 md:mb-12"
+        >
+          <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 rounded-full mb-4">
+            <div className="w-2 h-2 rounded-full bg-[#691C33]" />
+            <span
+              className={`text-xs md:text-sm font-semibold text-[#691C33] tracking-wider ${gothamOffice.className}`}
+            >
+              WATCH & LEARN
+            </span>
+          </div>
+
+          <h2
+            className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#691C33] mb-4 leading-tight ${italiana.className}`}
+          >
+            Free Video Lessons
+          </h2>
+
+          <p
+            className={`text-base md:text-lg text-[#691C33] max-w-3xl mx-auto ${gothamOffice.className} font-light leading-relaxed`}
+          >
+            Experience our teaching style with free lessons from our curriculum.
+            See why our graduates succeed.
+          </p>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-2 md:gap-2.5 mb-8 md:mb-10"
         >
           {videoCategories.map((category) => {
             const Icon = category.icon;
+            const isActive = activeFilter === category.id;
             return (
-              <motion.button
+              <button
                 key={category.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveFilter(category.id)}
-                className={`px-3 py-2 md:px-4 md:py-3 rounded-full font-medium text-xs md:text-sm lg:text-base transition-all flex items-center gap-1 md:gap-2 border ${
-                  activeFilter === category.id
-                    ? "bg-[#691C33] text-white border-[#691C33] shadow-lg"
-                    : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33] hover:bg-[#691C33]/5"
+                className={`px-3.5 py-2.5 md:px-4 md:py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all flex items-center gap-1.5 border-2 ${
+                  isActive
+                    ? "bg-[#691C33] text-white border-[#691C33] shadow-md"
+                    : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33]/60"
                 }`}
               >
-                <Icon className="w-3 h-3 md:w-4 h-4" />
-                <span className="whitespace-nowrap">{category.label}</span>
-              </motion.button>
+                <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                <span>{category.label}</span>
+              </button>
             );
           })}
         </motion.div>
 
-        {/* Video Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-          {filteredVideos.map((video, index) => (
-            <motion.div
-              key={video.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="group cursor-pointer"
-              onClick={() => setSelectedVideo(video.id)}
-            >
-              <div className="relative rounded-xl md:rounded-2xl overflow-hidden bg-white border border-[#691C33]/10 shadow-lg hover:shadow-xl transition-all duration-300 h-full">
-                {/* Featured Badge */}
-                {video.featured && (
-                  <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10">
-                    <div className="flex items-center gap-1 bg-[#691C33] text-white px-2 py-1 md:px-3 md:py-1 rounded-full">
-                      <Star className="w-2 h-2 md:w-3 h-3 fill-white" />
-                      <span className="text-xs font-semibold">Featured</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Thumbnail - UPDATED WITH IMAGE COMPONENT */}
-                <div className="relative aspect-video overflow-hidden">
-                  {/* Actual Image Thumbnail */}
-                  <div className="relative w-full h-full">
+        {/* Videos Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 lg:gap-7">
+          <AnimatePresence mode="popLayout">
+            {filteredVideos.map((video, index) => (
+              <motion.button
+                key={video.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                onClick={() => setSelectedVideo(video.id)}
+                className="group text-left"
+              >
+                <div className="bg-white rounded-2xl overflow-hidden border-2 border-[#691C33]/10 hover:border-[#691C33]/30 shadow-md hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video overflow-hidden bg-[#2b0a15]">
                     <Image
                       src={video.thumbnail}
                       alt={video.title}
                       fill
-                      className="object-cover"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       priority={index < 3}
                     />
-                  </div>
 
-                  {/* Dark overlay */}
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-all duration-300" />
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors" />
 
-                  {/* Play button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      {/* Animated ring */}
-                      <div className="absolute inset-0 w-12 h-12 md:w-16 md:h-16 rounded-full border-2 md:border-4 border-white/30 animate-ping"></div>
+                    {/* Featured badge */}
+                    {video.featured && (
+                      <div className="absolute top-3 left-3 bg-[#691C33] text-white px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider z-10">
+                        Featured
+                      </div>
+                    )}
 
-                      {/* Play button */}
-                      <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                          <Play className="w-4 h-4 md:w-5 md:h-5 text-white fill-white ml-0.5" />
-                        </div>
+                    {/* Duration */}
+                    <div className="absolute bottom-3 right-3 bg-black/85 text-white px-2 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 z-10">
+                      <Clock className="w-3 h-3" />
+                      {video.duration}
+                    </div>
+
+                    {/* Play */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/25 backdrop-blur-sm border-2 border-white/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Play className="w-6 h-6 md:w-7 md:h-7 text-white fill-white ml-0.5" />
                       </div>
                     </div>
                   </div>
 
-                  {/* Duration Badge */}
-                  <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-black/80 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 z-10">
-                    <Clock className="w-2 h-2 md:w-3 h-3" />
-                    {video.duration}
-                  </div>
-                </div>
-
-                {/* Video Info */}
-                <div className="p-4 md:p-6 flex flex-col flex-grow">
-                  <div className="flex-1">
+                  {/* Info */}
+                  <div className="p-4 md:p-5 flex flex-col flex-grow">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-[#691C33]"></div>
-                      <span className="text-xs font-semibold text-[#691C33] uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-[#691C33] uppercase tracking-wider bg-[#691C33]/10 px-2 py-0.5 rounded-full">
                         {video.category}
                       </span>
                     </div>
+
                     <h3
-                      className={`text-base md:text-lg lg:text-xl font-bold text-[#691C33] mb-2 line-clamp-2 min-h-[3rem] ${gothamOffice.className}`}
+                      className={`text-base md:text-lg font-bold text-[#691C33] mb-2 line-clamp-2 leading-snug ${gothamOffice.className}`}
                     >
                       {video.title}
                     </h3>
-                    <p className="text-[#691C33]/70 text-sm md:text-base mb-4 line-clamp-2">
+
+                    <p className="text-sm text-[#691C33] line-clamp-2 leading-relaxed mb-4 flex-grow">
                       {video.description}
                     </p>
-                  </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center justify-between pt-3 md:pt-4 border-t border-[#691C33]/10">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className="flex items-center gap-1 md:gap-2">
-                        <User className="w-3 h-3 md:w-4 h-4 text-[#691C33]" />
-                        <span className="text-xs md:text-sm text-[#691C33]/70 truncate max-w-[80px] md:max-w-none">
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-3 border-t border-[#691C33]/10">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <User className="w-3.5 h-3.5 text-[#691C33] flex-shrink-0" />
+                        <span className="text-xs font-medium text-[#691C33] truncate">
                           {video.instructor}
                         </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1 md:gap-2">
-                      <Eye className="w-3 h-3 md:w-4 h-4 text-[#691C33]" />
-                      <span className="text-xs md:text-sm text-[#691C33]/70">
-                        {video.views}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Eye className="w-3.5 h-3.5 text-[#691C33]" />
+                        <span className="text-xs font-medium text-[#691C33]">
+                          {video.views}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.button>
+            ))}
+          </AnimatePresence>
         </div>
 
-        {/* More Videos CTA */}
+        {/* Empty state */}
+        {filteredVideos.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-[#691C33] text-lg font-medium">
+              No videos in this category yet.
+            </p>
+          </div>
+        )}
+
+        {/* Bottom CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="mt-12 md:mt-16"
         >
-          <div className="inline-flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 bg-gradient-to-r from-[#691C33]/5 to-[#8B2846]/5 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8 border border-[#691C33]/10 backdrop-blur-sm w-full">
-            <div className="text-center md:text-left">
-              <h4 className="text-lg md:text-xl lg:text-2xl font-bold text-[#691C33] mb-1 md:mb-2">
+          <div className="bg-[#691C33] rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-10 flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex-1 text-center md:text-left">
+              <h4
+                className={`text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2 ${italiana.className}`}
+              >
                 Access 50+ Premium Videos
               </h4>
-              <p className="text-[#691C33]/70 text-sm md:text-base max-w-xl">
+              <p className="text-white/90 text-sm md:text-base leading-relaxed">
                 Get complete access to our entire video library when you enroll
-                in any course
+                in any program.
               </p>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-[#691C33] to-[#8B2846] text-white px-6 py-3 md:px-8 md:py-3 rounded-lg md:rounded-xl font-semibold hover:shadow-xl transition-all flex items-center gap-2 text-sm md:text-base whitespace-nowrap"
+            <button
+              onClick={() => (window.location.href = "/enrollment")}
+              className="bg-white text-[#691C33] px-6 py-3.5 md:px-8 md:py-4 rounded-xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-white/95 transition-colors whitespace-nowrap"
             >
-              <BookOpen className="w-4 h-4 md:w-5 h-5" />
+              <BookOpen className="w-5 h-5" />
               View Full Curriculum
-            </motion.button>
+            </button>
           </div>
         </motion.div>
       </div>
@@ -486,192 +466,159 @@ const VideoGallery = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-50 flex items-center justify-center p-0 md:p-4"
+            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-0 md:p-4"
             onClick={handleCloseModal}
           >
-            {/* Navigation Buttons - Hidden on mobile, visible on tablet+ */}
+            {/* Prev / Next (desktop only) */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 prevVideo();
               }}
-              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-20 hidden md:flex"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white hover:bg-white/25 transition-colors z-20 hidden md:flex"
+              aria-label="Previous"
             >
-              <ChevronLeft className="w-4 h-4 md:w-6 h-6" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
-
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 nextVideo();
               }}
-              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-8 h-8 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-20 hidden md:flex"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white hover:bg-white/25 transition-colors z-20 hidden md:flex"
+              aria-label="Next"
             >
-              <ChevronRight className="w-4 h-4 md:w-6 h-6" />
+              <ChevronRight className="w-6 h-6" />
             </button>
 
-            {/* Close Button */}
+            {/* Close */}
             <button
               onClick={handleCloseModal}
-              className="absolute top-3 right-3 md:top-4 md:right-4 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="absolute top-4 right-4 z-30 w-11 h-11 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
+              aria-label="Close"
             >
-              <X className="w-4 h-4 md:w-5 h-5" />
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
-            {/* Video Container */}
+            {/* Container */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full h-full md:w-full md:h-auto md:max-w-6xl video-modal-container"
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full h-full md:h-auto md:max-w-5xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
               ref={videoContainerRef}
             >
-              <div className="relative w-full h-full bg-black">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-contain"
-                  controls={false}
-                  onEnded={handleVideoEnd}
-                  playsInline
-                  muted={isVideoMuted}
-                >
-                  <source src={selectedVideoData.videoUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+              {/* Video */}
+              <div className="relative w-full flex-1 md:flex-initial bg-black md:rounded-t-2xl overflow-hidden">
+                <div className="relative w-full aspect-video bg-black">
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-contain"
+                    controls={false}
+                    onEnded={handleVideoEnd}
+                    playsInline
+                    muted={isVideoMuted}
+                  >
+                    <source src={selectedVideoData.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
 
-                {/* Custom Controls Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 md:p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 md:gap-4">
-                      {/* Play/Pause Button */}
+                {/* Controls */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 md:p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <button
                         onClick={toggleVideoPlay}
-                        className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#8B2846] transition-colors"
+                        className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#691C33]/90 transition-colors flex-shrink-0"
+                        aria-label={isVideoPlaying ? "Pause" : "Play"}
                       >
                         {isVideoPlaying ? (
-                          <Pause className="w-3 h-3 md:w-4 h-4 text-white fill-white" />
+                          <Pause className="w-5 h-5 text-white fill-white" />
                         ) : (
-                          <Play className="w-3 h-3 md:w-4 h-4 text-white fill-white ml-1" />
+                          <Play className="w-5 h-5 text-white fill-white ml-0.5" />
                         )}
                       </button>
 
-                      {/* Mute/Unmute Button */}
                       <button
                         onClick={toggleMute}
-                        className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+                        className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors flex-shrink-0"
+                        aria-label={isVideoMuted ? "Unmute" : "Mute"}
                       >
                         {isVideoMuted ? (
-                          <VolumeX className="w-3 h-3 md:w-4 h-4 text-white" />
+                          <VolumeX className="w-5 h-5 text-white" />
                         ) : (
-                          <Volume2 className="w-3 h-3 md:w-4 h-4 text-white" />
+                          <Volume2 className="w-5 h-5 text-white" />
                         )}
                       </button>
 
-                      {/* Video Info - hidden on mobile, visible on tablet+ */}
-                      <div className="hidden md:block ml-2">
-                        <h3 className="text-white font-semibold text-lg">
+                      <div className="hidden md:block ml-2 min-w-0">
+                        <h3 className="text-white font-semibold text-base truncate">
                           {selectedVideoData.title}
                         </h3>
-                        <p className="text-gray-300 text-sm">
-                          {selectedVideoData.description}
+                        <p className="text-white/70 text-xs truncate">
+                          {selectedVideoData.instructor} ·{" "}
+                          {selectedVideoData.duration}
                         </p>
                       </div>
                     </div>
 
-                    {/* Fullscreen Button */}
                     <button
                       onClick={toggleFullscreen}
-                      className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+                      className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors flex-shrink-0"
+                      aria-label="Fullscreen"
                     >
                       {isFullscreen ? (
-                        <Minimize2 className="w-3 h-3 md:w-4 h-4 text-white" />
+                        <Minimize2 className="w-5 h-5 text-white" />
                       ) : (
-                        <Maximize2 className="w-3 h-3 md:w-4 h-4 text-white" />
+                        <Maximize2 className="w-5 h-5 text-white" />
                       )}
                     </button>
-                  </div>
-
-                  {/* Video Info for Mobile */}
-                  <div className="md:hidden mt-2">
-                    <h3 className="text-white font-semibold text-sm truncate">
-                      {selectedVideoData.title}
-                    </h3>
-                    <p className="text-gray-300 text-xs truncate">
-                      {selectedVideoData.description}
-                    </p>
-                  </div>
-
-                  {/* Stats for Mobile */}
-                  <div className="flex items-center justify-between mt-2 text-xs text-gray-400 md:hidden">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3 h-3" />
-                      <span>{selectedVideoData.instructor}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3" />
-                      <span>{selectedVideoData.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-3 h-3" />
-                      <span>{selectedVideoData.views} views</span>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Video Info in Modal - Tablet+ */}
-              <div className="hidden md:block mt-4 md:mt-6 text-white">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex items-center gap-2 bg-[#691C33]/20 px-3 py-1.5 rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-[#691C33]"></div>
-                        <span className="text-sm font-semibold text-white">
-                          {selectedVideoData.category.toUpperCase()}
-                        </span>
-                      </div>
-                      {selectedVideoData.featured && (
-                        <div className="flex items-center gap-1 bg-white/10 px-3 py-1.5 rounded-full">
-                          <Star className="w-3 h-3 fill-white" />
-                          <span className="text-sm font-semibold">
-                            Featured
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="text-2xl font-bold mb-2">
-                      {selectedVideoData.title}
-                    </h3>
-                    <p className="text-gray-300">
-                      {selectedVideoData.description}
-                    </p>
-                  </div>
+              {/* Info panel (mobile + desktop) */}
+              <div className="bg-white md:rounded-b-2xl p-4 md:p-6">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="text-[10px] font-bold text-white bg-[#691C33] uppercase tracking-wider px-2.5 py-1 rounded-full">
+                    {selectedVideoData.category}
+                  </span>
+                  {selectedVideoData.featured && (
+                    <span className="text-[10px] font-bold text-[#691C33] bg-[#691C33]/10 uppercase tracking-wider px-2.5 py-1 rounded-full">
+                      Featured
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <User className="w-5 h-5 text-gray-300" />
-                      <span className="text-gray-300">
-                        {selectedVideoData.instructor}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-300" />
-                      <span className="text-gray-300">
-                        {selectedVideoData.duration}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-5 h-5 text-gray-300" />
-                      <span className="text-gray-300">
-                        {selectedVideoData.views} views
-                      </span>
-                    </div>
+
+                <h3 className="text-lg md:text-2xl font-bold text-[#691C33] mb-2 leading-tight">
+                  {selectedVideoData.title}
+                </h3>
+                <p className="text-sm md:text-base text-[#691C33] leading-relaxed mb-4">
+                  {selectedVideoData.description}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4 md:gap-6 pt-4 border-t border-[#691C33]/10 text-sm text-[#691C33]">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">
+                      {selectedVideoData.instructor}
+                    </span>
                   </div>
-                  <button className="text-[#691C33] hover:text-white transition-colors font-semibold">
-                    Save for Later
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-medium">
+                      {selectedVideoData.duration}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    <span className="font-medium">
+                      {selectedVideoData.views} views
+                    </span>
+                  </div>
                 </div>
               </div>
             </motion.div>

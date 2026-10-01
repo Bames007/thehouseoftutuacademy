@@ -1,6 +1,6 @@
 // components/Sections/AboutAcademy.tsx
 "use client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { gothamOffice, italiana } from "@/app/utils/constants";
 import {
   Target,
@@ -8,13 +8,9 @@ import {
   Award,
   Shield,
   BookOpen,
-  Users,
-  Rocket,
-  Sparkles,
   CheckCircle,
   Calendar,
   Clock,
-  MapPin,
   Users as UsersIcon,
   X,
   Bell,
@@ -22,17 +18,23 @@ import {
   GraduationCap,
   ChevronRight,
   ChevronLeft,
+  Briefcase,
+  ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
+type ProgramId = "art6" | "art12" | "commercial" | "oneday";
+
 const AboutAcademy = () => {
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<ProgramId>("art6");
   const [isStudent, setIsStudent] = useState(false);
   const [email, setEmail] = useState("");
   const [selectedReminders, setSelectedReminders] = useState<string[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2026, 3, 1)); // April 2026
 
+  // ─── Core Values ─────────────────────────────────────────
   const coreValues = [
     {
       icon: Target,
@@ -56,218 +58,212 @@ const AboutAcademy = () => {
     },
   ];
 
-  // Commercial Perfumery Masterclass Schedule - April 27 to May 10, 2026
-  const masterclassSchedule = [
+  // ─── Program Catalogue ───────────────────────────────────
+  const programs: Record<
+    ProgramId,
     {
-      date: "Mon, Apr 27",
-      day: "Day 1",
-      title: "Introduction to Perfumery",
-      description: "Fragrance theory, history & business overview",
-      time: "10:00 AM - 1:00 PM",
+      label: string;
+      short: string;
+      subtitle: string;
+      start: string;
+      end: string;
+      days: string;
+      time: string;
+      dayRange: number[]; // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+      color: string;
+    }
+  > = {
+    art6: {
+      label: "Art of Perfumery — 6 Weeks",
+      short: "Art · 6 Weeks",
+      subtitle: "Beginner Perfumery Program",
+      start: "Tue, April 7, 2026",
+      end: "Thu, May 14, 2026",
+      days: "Tue · Wed · Thu",
+      time: "10:00 AM – 1:00 PM",
+      dayRange: [2, 3, 4],
+      color: "#691C33",
+    },
+    art12: {
+      label: "Art of Perfumery — 12 Weeks",
+      short: "Art · 12 Weeks",
+      subtitle: "Intermediate & Advanced Program",
+      start: "Tue, April 7, 2026",
+      end: "Thu, June 25, 2026",
+      days: "Tue · Wed · Thu",
+      time: "10:00 AM – 1:00 PM",
+      dayRange: [2, 3, 4],
+      color: "#691C33",
+    },
+    commercial: {
+      label: "Commercial Perfumery — 2 Weeks",
+      short: "Commercial · 2 Weeks",
+      subtitle: "Business Masterclass",
+      start: "Tue, April 7, 2026",
+      end: "Thu, April 16, 2026",
+      days: "Tue · Wed · Thu",
+      time: "10:00 AM – 1:00 PM",
+      dayRange: [2, 3, 4],
+      color: "#691C33",
+    },
+    oneday: {
+      label: "1-Day Intensive Workshop",
+      short: "1-Day Workshop",
+      subtitle: "Fast-track Introductory Class",
+      start: "Fri, April 10, 2026",
+      end: "Sun, April 26, 2026",
+      days: "Fri · Sat · Sun",
+      time: "12–2 PM or 4–6 PM",
+      dayRange: [5, 6, 0],
+      color: "#691C33",
+    },
+  };
+
+  // ─── Weekly Schedule (Tue–Thu) ───────────────────────────
+  const artWeeklyPlan = [
+    {
+      week: "Week 1",
+      theme: "Discovering Your Nose",
+      sessions: [
+        { day: "Tuesday", topic: "What perfumery is — art meets science" },
+        { day: "Wednesday", topic: "How the sense of smell works" },
+        { day: "Thursday", topic: "First smelling session on blotters" },
+      ],
     },
     {
-      date: "Tue, Apr 28",
-      day: "Day 2",
-      title: "Fragrance Families & Notes",
-      description: "Understanding scent categories and structure",
-      time: "10:00 AM - 1:00 PM",
+      week: "Week 2",
+      theme: "Story of Scent & Fragrance Families",
+      sessions: [
+        { day: "Tuesday", topic: "History — Egypt to the spice trade" },
+        { day: "Wednesday", topic: "Africa's scent traditions" },
+        { day: "Thursday", topic: "The 8 fragrance families" },
+      ],
     },
     {
-      date: "Wed, Apr 29",
-      day: "Day 3",
-      title: "Essential Ingredients",
-      description: "Working with base materials and carriers",
-      time: "10:00 AM - 1:00 PM",
+      week: "Week 3",
+      theme: "Raw Materials & Extraction",
+      sessions: [
+        { day: "Tuesday", topic: "Natural vs synthetic materials" },
+        { day: "Wednesday", topic: "The 5 extraction methods" },
+        { day: "Thursday", topic: "Adulteration & safe storage" },
+      ],
     },
     {
-      date: "Thu, Apr 30",
-      day: "Day 4",
-      title: "Scent Blending Workshop",
-      description: "Practical blending techniques and exercises",
-      time: "10:00 AM - 1:00 PM",
+      week: "Week 4",
+      theme: "The Art of Blending",
+      sessions: [
+        { day: "Tuesday", topic: "What an accord is + Rule of Three" },
+        { day: "Wednesday", topic: "The 5 classic accord families" },
+        { day: "Thursday", topic: "Build your first 3-note accord" },
+      ],
     },
     {
-      date: "Fri, May 1",
-      day: "Day 5",
-      title: "Creating Signature Scents",
-      description: "Developing unique fragrance formulas",
-      time: "10:00 AM - 1:00 PM",
+      week: "Week 5",
+      theme: "Formulation, Measuring & Safety",
+      sessions: [
+        { day: "Tuesday", topic: "The percentage formula" },
+        { day: "Wednesday", topic: "Concentration ranges explained" },
+        { day: "Thursday", topic: "Patch testing & IFRA basics" },
+      ],
     },
     {
-      date: "Mon, May 4",
-      day: "Day 6",
-      title: "Business Fundamentals",
-      description: "Pricing, costing, and business setup",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Tue, May 5",
-      day: "Day 7",
-      title: "Branding & Packaging",
-      description: "Creating luxury brand identity",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Wed, May 6",
-      day: "Day 8",
-      title: "Marketing Strategies",
-      description: "Digital and physical marketing techniques",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Thu, May 7",
-      day: "Day 9",
-      title: "Sales & Distribution",
-      description: "Selling online and offline",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Fri, May 8",
-      day: "Day 10",
-      title: "Business Plan Development",
-      description: "Creating comprehensive business plans",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Mon, May 11",
-      day: "Day 11",
-      title: "Supplier Relations",
-      description: "Sourcing and managing suppliers",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Tue, May 12",
-      day: "Day 12",
-      title: "Quality Control",
-      description: "Ensuring product consistency and safety",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Wed, May 13",
-      day: "Day 13",
-      title: "Advanced Business Skills",
-      description: "Financial planning and scaling",
-      time: "10:00 AM - 1:00 PM",
-    },
-    {
-      date: "Thu, May 14",
-      day: "Day 14",
-      title: "Graduation & Certification",
-      description: "Final presentations and certification",
-      time: "10:00 AM - 1:00 PM",
+      week: "Week 6",
+      theme: "Bringing It All Together",
+      sessions: [
+        { day: "Tuesday", topic: "Maceration explained" },
+        { day: "Wednesday", topic: "Pricing: Cost × Markup" },
+        { day: "Thursday", topic: "Mini Showcase — present your scent" },
+      ],
     },
   ];
 
-  const reminderOptions = [
-    { id: "week_before", label: "1 Week Before", days: 7 },
-    { id: "3_days_before", label: "3 Days Before", days: 3 },
-    { id: "day_before", label: "Day Before", days: 1 },
-    { id: "morning_of", label: "Morning of Class", days: 0 },
+  const commercialWeeklyPlan = [
+    {
+      week: "Week 1",
+      theme: "Building Your Perfume Brand",
+      sessions: [
+        { day: "Tuesday", topic: "The 4 business models" },
+        { day: "Wednesday", topic: "Positioning, naming & identity" },
+        { day: "Thursday", topic: "Pricing: Cost × Markup" },
+      ],
+    },
+    {
+      week: "Week 2",
+      theme: "Marketing, Sales & Launch",
+      sessions: [
+        { day: "Tuesday", topic: "Where to sell — online & retail" },
+        { day: "Wednesday", topic: "Digital marketing for fragrance" },
+        { day: "Thursday", topic: "Launch your first commercial batch" },
+      ],
+    },
   ];
 
-  const handleSetReminder = () => {
-    if (!email) {
-      alert("Please enter your email address");
-      return;
-    }
+  const oneDaySchedule = [
+    { day: "Friday", slots: ["12:00 PM – 2:00 PM", "4:00 PM – 6:00 PM"] },
+    { day: "Saturday", slots: ["12:00 PM – 2:00 PM", "4:00 PM – 6:00 PM"] },
+    { day: "Sunday", slots: ["12:00 PM – 2:00 PM", "4:00 PM – 6:00 PM"] },
+  ];
 
-    if (!validateEmail(email)) {
-      alert("Please enter a valid email address");
-      return;
-    }
-
-    if (selectedReminders.length === 0) {
-      alert("Please select at least one reminder option");
-      return;
-    }
-
-    // Here you would typically send this data to your backend
-    console.log({
-      email,
-      isStudent,
-      reminders: selectedReminders,
-      course: "Commercial Perfumery Masterclass",
-      startDate: "April 27, 2026",
-    });
-
-    // Show success message
-    alert(
-      `Reminders set successfully! We'll send reminders to ${email} for the Commercial Perfumery Masterclass.`
-    );
-
-    // Reset form and close modal
-    setEmail("");
-    setIsStudent(false);
-    setSelectedReminders([]);
-    setShowCalendarModal(false);
-  };
-
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const toggleReminder = (id: string) => {
-    if (selectedReminders.includes(id)) {
-      setSelectedReminders(selectedReminders.filter((item) => item !== id));
-    } else {
-      setSelectedReminders([...selectedReminders, id]);
-    }
-  };
-
-  // Generate calendar for April 2026
+  // ─── Calendar Generation ─────────────────────────────────
   const generateCalendar = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
+    const startDay = firstDay.getDay();
 
-    const startDay = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startDay; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startDay; i++) days.push(null);
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
-
     return days;
   };
 
-  const isClassDay = (date: Date | null) => {
+  const isClassDay = (date: Date | null, program: ProgramId) => {
     if (!date) return false;
-
-    const classDates = [
-      // April 27-30, 2026
-      new Date(2026, 3, 27),
-      new Date(2026, 3, 28),
-      new Date(2026, 3, 29),
-      new Date(2026, 3, 30),
-      // May 1, 2026
-      new Date(2026, 4, 1),
-      new Date(2026, 4, 4),
-      new Date(2026, 4, 5),
-      new Date(2026, 4, 6),
-      new Date(2026, 4, 7),
-      new Date(2026, 4, 8),
-      new Date(2026, 4, 11),
-      new Date(2026, 4, 12),
-      new Date(2026, 4, 13),
-      new Date(2026, 4, 14),
-    ];
-
-    return classDates.some(
-      (classDate) =>
-        date.getDate() === classDate.getDate() &&
-        date.getMonth() === classDate.getMonth() &&
-        date.getFullYear() === classDate.getFullYear()
-    );
+    const month = currentMonth.getMonth();
+    // Only mark class days within the program window
+    if (program === "art6") {
+      // Apr 7 – May 14, 2026 (Tue-Thu)
+      return (
+        date.getDay() >= 2 &&
+        date.getDay() <= 4 &&
+        ((date.getMonth() === 3 && date.getDate() >= 7) ||
+          (date.getMonth() === 4 && date.getDate() <= 14))
+      );
+    }
+    if (program === "art12") {
+      // Apr 7 – Jun 25, 2026 (Tue-Thu)
+      return (
+        date.getDay() >= 2 &&
+        date.getDay() <= 4 &&
+        ((date.getMonth() === 3 && date.getDate() >= 7) ||
+          date.getMonth() === 4 ||
+          (date.getMonth() === 5 && date.getDate() <= 25))
+      );
+    }
+    if (program === "commercial") {
+      // Apr 7 – Apr 16, 2026 (Tue-Thu)
+      return (
+        date.getDay() >= 2 &&
+        date.getDay() <= 4 &&
+        date.getMonth() === 3 &&
+        date.getDate() >= 7 &&
+        date.getDate() <= 16
+      );
+    }
+    if (program === "oneday") {
+      // Fri, Sat, Sun April 10–26, 2026
+      return (
+        (date.getDay() === 5 || date.getDay() === 6 || date.getDay() === 0) &&
+        date.getMonth() === 3 &&
+        date.getDate() >= 10 &&
+        date.getDate() <= 26
+      );
+    }
+    return false;
   };
 
   const getDayName = (date: Date | null) => {
@@ -276,66 +272,101 @@ const AboutAcademy = () => {
     return days[date.getDay()];
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const formatMonthYear = (date: Date) =>
+    date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const nextMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
+    );
+  const prevMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1),
+    );
+
+  // ─── Reminder Logic ──────────────────────────────────────
+  const reminderOptions = [
+    { id: "week_before", label: "1 Week Before" },
+    { id: "3_days_before", label: "3 Days Before" },
+    { id: "day_before", label: "Day Before" },
+    { id: "morning_of", label: "Morning of Class" },
+  ];
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
   };
 
-  const nextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+  const toggleReminder = (id: string) => {
+    setSelectedReminders((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
-  const prevMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+  const handleSetReminder = () => {
+    if (!email) return alert("Please enter your email address");
+    if (!validateEmail(email)) return alert("Please enter a valid email");
+    if (selectedReminders.length === 0)
+      return alert("Please select at least one reminder");
+
+    alert(
+      `Reminders set successfully! We'll email ${email} for ${programs[selectedProgram].label}.`,
     );
+    setEmail("");
+    setIsStudent(false);
+    setSelectedReminders([]);
+    setShowCalendarModal(false);
   };
 
-  // Close modal on escape key
+  // ─── Body Scroll Lock ────────────────────────────────────
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && showCalendarModal) {
-        setShowCalendarModal(false);
-      }
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showCalendarModal) setShowCalendarModal(false);
     };
-
     if (showCalendarModal) {
-      document.addEventListener("keydown", handleEscape);
+      document.addEventListener("keydown", onEsc);
       document.body.style.overflow = "hidden";
     }
-
     return () => {
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", onEsc);
       document.body.style.overflow = "auto";
     };
   }, [showCalendarModal]);
 
+  const current = programs[selectedProgram];
+
   return (
     <>
-      <section className="py-16 md:py-24 relative overflow-hidden" id="about">
-        {/* Solid White Background */}
-        <div className="absolute inset-0 bg-white"></div>
-
-        {/* Pattern Background - Visible */}
+      {/* ─── About Section ─────────────────────────────────── */}
+      <section
+        id="about"
+        className="relative overflow-hidden py-14 md:py-24"
+        style={{ backgroundColor: "#ffffff" }}
+      >
         <div
-          className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat"
-          style={{ opacity: 0.08 }}
-        ></div>
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `url('/pattern.png')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.05,
+            zIndex: 0,
+          }}
+        />
 
-        <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 md:gap-16 items-center">
-            {/* Left Column */}
+        <div className="relative z-10 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* LEFT: Text */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
-              className="space-y-8"
+              className="space-y-6 md:space-y-8"
             >
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 md:py-3 rounded-full">
-                <div className="w-2 h-2 bg-[#691C33] rounded-full"></div>
+              <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 rounded-full">
+                <div className="w-2 h-2 bg-[#691C33] rounded-full" />
                 <span
                   className={`text-[#691C33] font-semibold tracking-wider text-xs md:text-sm ${gothamOffice.className}`}
                 >
@@ -343,26 +374,24 @@ const AboutAcademy = () => {
                 </span>
               </div>
 
-              {/* Title */}
               <h2
                 className={`text-3xl md:text-4xl lg:text-5xl font-black text-[#691C33] leading-tight ${italiana.className}`}
               >
                 Nigeria's Premier Fragrance Business School
               </h2>
 
-              {/* Description */}
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-[#691C33]/10">
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl p-5 md:p-6 border-2 border-[#691C33]/10">
                   <p
                     className={`text-[#691C33] text-base md:text-lg ${gothamOffice.className} leading-relaxed`}
                   >
                     The House of Tutu Perfumery Academy is Nigeria's first
-                    specialized fragrance school dedicated to teaching both the
+                    specialised fragrance school dedicated to teaching both the
                     commercial and artistic sides of perfumery.
                   </p>
                 </div>
 
-                <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-[#691C33]/10">
+                <div className="bg-white rounded-2xl p-5 md:p-6 border-2 border-[#691C33]/10">
                   <p
                     className={`text-[#691C33] text-base md:text-lg ${gothamOffice.className} leading-relaxed`}
                   >
@@ -374,698 +403,756 @@ const AboutAcademy = () => {
               </div>
 
               {/* Core Values */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {coreValues.map((value, index) => (
-                  <motion.div
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                {coreValues.map((value) => (
+                  <div
                     key={value.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ y: -3 }}
-                    className="bg-white rounded-xl p-4 border border-[#691C33]/10 hover:shadow-md transition-all"
+                    className="bg-white rounded-2xl p-4 border-2 border-[#691C33]/10 hover:border-[#691C33]/30 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#691C33] flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#691C33] flex items-center justify-center flex-shrink-0">
                         <value.icon className="w-5 h-5 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-[#691C33] text-base md:text-lg">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-[#691C33] text-sm md:text-base leading-tight">
                           {value.label}
                         </h3>
-                        <p className="text-[#691C33]/70 text-sm">
+                        <p className="text-[#691C33]/80 text-xs md:text-sm mt-0.5 leading-snug">
                           {value.description}
                         </p>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
-              {/* Stats - Desktop Only */}
-              <div className="hidden lg:grid grid-cols-3 gap-4">
-                <div className="bg-[#691C33] text-white rounded-xl p-4 text-center">
-                  <div className="text-2xl md:text-3xl font-bold mb-1">
-                    2 Weeks
-                  </div>
-                  <div className="text-white/90 text-sm">Intensive Program</div>
+              {/* Stats — Desktop */}
+              <div className="hidden lg:grid grid-cols-3 gap-3">
+                <div className="bg-[#691C33] text-white rounded-2xl p-4 text-center">
+                  <div className="text-2xl font-bold mb-1">3</div>
+                  <div className="text-white/85 text-xs">Tracks Available</div>
                 </div>
-                <div className="bg-white border border-[#691C33]/10 rounded-xl p-4 text-center">
-                  <div className="text-2xl md:text-3xl font-bold text-[#691C33] mb-1">
-                    10+
+                <div className="bg-white border-2 border-[#691C33]/10 rounded-2xl p-4 text-center">
+                  <div className="text-2xl font-bold text-[#691C33] mb-1">
+                    50+
                   </div>
-                  <div className="text-[#691C33]/80 text-sm">
+                  <div className="text-[#691C33]/80 text-xs">
                     Successful Graduates
                   </div>
                 </div>
-                <div className="bg-[#691C33] text-white rounded-xl p-4 text-center">
-                  <div className="text-2xl md:text-3xl font-bold mb-1">
-                    100%
-                  </div>
-                  <div className="text-white/90 text-sm">
+                <div className="bg-[#691C33] text-white rounded-2xl p-4 text-center">
+                  <div className="text-2xl font-bold mb-1">100%</div>
+                  <div className="text-white/85 text-xs">
                     Practical Training
                   </div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Right Column - Animated Process */}
+            {/* RIGHT: Learning Journey */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.7 }}
               className="relative"
             >
-              {/* Main Container */}
-              <div className="relative bg-white rounded-2xl md:rounded-3xl p-6 md:p-8 border border-[#691C33]/10 shadow-xl overflow-hidden">
-                {/* Pattern Inside */}
-                <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.04]"></div>
+              <div className="bg-white rounded-3xl p-6 md:p-8 border-2 border-[#691C33]/10 shadow-xl">
+                <h3
+                  className={`text-2xl md:text-3xl font-bold text-[#691C33] mb-6 md:mb-8 ${gothamOffice.className}`}
+                >
+                  Our Learning Journey
+                </h3>
 
-                <div className="relative z-10">
-                  <h3
-                    className={`text-2xl md:text-3xl font-bold text-[#691C33] mb-8 ${gothamOffice.className}`}
-                  >
-                    Our Learning Journey
-                  </h3>
-
-                  {/* Process Steps */}
-                  <div className="space-y-6">
-                    {[
-                      {
-                        step: "01",
-                        title: "Learn Fundamentals",
-                        description:
-                          "Master fragrance theory & scent composition",
-                        icon: BookOpen,
-                        color: "bg-[#691C33]",
-                      },
-                      {
-                        step: "02",
-                        title: "Create Products",
-                        description: "Develop unique fragrance formulas",
-                        icon: Sparkles,
-                        color: "bg-white border-2 border-[#691C33]",
-                      },
-                      {
-                        step: "03",
-                        title: "Build Brand",
-                        description: "Create luxury brand identity & packaging",
-                        icon: Target,
-                        color: "bg-[#691C33]",
-                      },
-                      {
-                        step: "04",
-                        title: "Launch Business",
-                        description: "Execute market strategy & sales",
-                        icon: Rocket,
-                        color: "bg-white border-2 border-[#691C33]",
-                      },
-                    ].map((step, index) => (
-                      <motion.div
-                        key={step.step}
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-start gap-4 p-4 rounded-xl hover:bg-[#691C33]/5 transition-colors group"
-                      >
-                        {/* Step Number */}
-                        <div
-                          className={`w-12 h-12 rounded-lg ${step.color} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}
-                        >
-                          <span
-                            className={`text-lg font-bold ${
-                              step.color.includes("bg-white")
-                                ? "text-[#691C33]"
-                                : "text-white"
-                            }`}
-                          >
-                            {step.step}
-                          </span>
-                        </div>
-
-                        {/* Step Content */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <step.icon
-                              className={`w-5 h-5 ${
-                                step.color.includes("bg-white")
-                                  ? "text-[#691C33]"
-                                  : "text-[#691C33]"
-                              }`}
-                            />
-                            <h4 className="font-bold text-[#691C33] text-lg">
-                              {step.title}
-                            </h4>
-                          </div>
-                          <p className="text-[#691C33]/70 text-sm md:text-base">
-                            {step.description}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Central Logo */}
-                  <div className="mt-8 flex justify-center">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 20,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                      className="relative w-24 h-24 md:w-32 md:h-32"
+                <div className="space-y-4 md:space-y-5">
+                  {[
+                    {
+                      step: "01",
+                      title: "Learn Fundamentals",
+                      description:
+                        "Master fragrance theory & scent composition",
+                      icon: BookOpen,
+                    },
+                    {
+                      step: "02",
+                      title: "Create Products",
+                      description: "Develop unique fragrance formulas",
+                      icon: Target,
+                    },
+                    {
+                      step: "03",
+                      title: "Build Brand",
+                      description: "Create luxury brand identity & packaging",
+                      icon: Award,
+                    },
+                    {
+                      step: "04",
+                      title: "Launch Business",
+                      description: "Execute market strategy & sales",
+                      icon: Briefcase,
+                    },
+                  ].map((step) => (
+                    <div
+                      key={step.step}
+                      className="flex items-start gap-4 p-3 md:p-4 rounded-2xl border-2 border-[#691C33]/8 hover:border-[#691C33]/25 hover:bg-[#691C33]/5 transition-colors"
                     >
-                      <div className="absolute inset-0 rounded-full border-4 border-[#691C33]/20"></div>
-                      <div className="absolute inset-4 rounded-full bg-gradient-to-br from-[#691C33] to-[#8B2846] flex items-center justify-center">
-                        <div className="relative w-16 h-16 md:w-20 md:h-20">
-                          <Image
-                            src="/logo-white.png"
-                            alt="The House of Tutu Logo"
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 768px) 64px, 80px"
-                            priority
-                          />
-                        </div>
+                      <div className="w-12 h-12 rounded-xl bg-[#691C33] flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-base font-bold">
+                          {step.step}
+                        </span>
                       </div>
-                    </motion.div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <step.icon className="w-4 h-4 text-[#691C33]" />
+                          <h4 className="font-bold text-[#691C33] text-base md:text-lg">
+                            {step.title}
+                          </h4>
+                        </div>
+                        <p className="text-[#691C33] text-sm md:text-base leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Logo */}
+                <div className="mt-8 flex justify-center">
+                  <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-[#691C33]/15 flex items-center justify-center">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#691C33] flex items-center justify-center">
+                      <div className="relative w-14 h-14 md:w-16 md:h-16">
+                        <Image
+                          src="/logo-white.png"
+                          alt="The House of Tutu Logo"
+                          fill
+                          className="object-contain"
+                          sizes="(max-width: 768px) 56px, 64px"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Mobile Stats */}
-              <div className="lg:hidden mt-6 grid grid-cols-3 gap-4">
-                <div className="bg-[#691C33] text-white rounded-xl p-4 text-center">
-                  <div className="text-xl font-bold mb-1">2 Weeks</div>
-                  <div className="text-white/90 text-xs">Intensive</div>
-                </div>
-                <div className="bg-white border border-[#691C33]/10 rounded-xl p-4 text-center">
-                  <div className="text-xl font-bold text-[#691C33] mb-1">
-                    10+
+              {/* Stats — Mobile */}
+              <div className="lg:hidden mt-5 grid grid-cols-3 gap-3">
+                <div className="bg-[#691C33] text-white rounded-2xl p-3 text-center">
+                  <div className="text-lg font-bold mb-0.5">3</div>
+                  <div className="text-white/85 text-[10px] leading-tight">
+                    Tracks
                   </div>
-                  <div className="text-[#691C33]/80 text-xs">Graduates</div>
                 </div>
-                <div className="bg-[#691C33] text-white rounded-xl p-4 text-center">
-                  <div className="text-xl font-bold mb-1">100%</div>
-                  <div className="text-white/90 text-xs">Practical</div>
+                <div className="bg-white border-2 border-[#691C33]/10 rounded-2xl p-3 text-center">
+                  <div className="text-lg font-bold text-[#691C33] mb-0.5">
+                    50+
+                  </div>
+                  <div className="text-[#691C33]/80 text-[10px] leading-tight">
+                    Graduates
+                  </div>
+                </div>
+                <div className="bg-[#691C33] text-white rounded-2xl p-3 text-center">
+                  <div className="text-lg font-bold mb-0.5">100%</div>
+                  <div className="text-white/85 text-[10px] leading-tight">
+                    Practical
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
 
-          {/* Bottom CTA */}
+          {/* ─── Bottom CTA ─────────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="mt-12 md:mt-16 rounded-2xl md:rounded-3xl p-6 md:p-8 relative overflow-hidden"
+            className="mt-12 md:mt-20"
           >
-            {/* Solid Background */}
-            <div className="absolute inset-0 bg-[#691C33]"></div>
+            <div className="relative overflow-hidden rounded-3xl bg-[#691C33] p-6 md:p-10 lg:p-12">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: `url('/pattern.png')`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  opacity: 0.08,
+                  filter: "brightness(0) invert(1)",
+                  zIndex: 0,
+                }}
+              />
 
-            {/* Pattern Overlay - White */}
-            <div
-              className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat"
-              style={{ opacity: 0.2, filter: "brightness(0) invert(1)" }}
-            ></div>
-
-            <div className="relative z-10">
-              <motion.h3
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`text-2xl md:text-3xl lg:text-4xl font-black text-white mb-4 md:mb-6 ${italiana.className}`}
-              >
-                Ready to Start Your Fragrance Journey?
-              </motion.h3>
-
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.1 }}
-                className="text-white/95 text-base md:text-lg mb-6 md:mb-8 max-w-2xl mx-auto leading-relaxed"
-              >
-                Join Nigeria's premier fragrance business school and transform
-                your passion into a profitable career. Limited spots available
-                for our next cohort.
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => (window.location.href = "/enrollment")}
-                  className="bg-white text-[#691C33] px-6 py-4 rounded-full font-semibold text-base md:text-lg inline-flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-shadow"
+              <div className="relative z-10">
+                <h3
+                  className={`text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3 md:mb-4 ${italiana.className}`}
                 >
-                  <Rocket className="w-5 h-5 md:w-6 md:h-6" />
-                  <span>ENROLL NOW</span>
-                </motion.button>
+                  Ready to Start Your Fragrance Journey?
+                </h3>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowCalendarModal(true)}
-                  className="bg-transparent border-2 border-white text-white px-6 py-4 rounded-full font-semibold text-base md:text-lg inline-flex items-center justify-center gap-3 hover:bg-white/10 transition-colors"
-                >
-                  <Calendar className="w-5 h-5 md:w-6 md:h-6" />
-                  <span>VIEW SCHEDULE</span>
-                </motion.button>
-              </motion.div>
+                <p className="text-white/90 text-sm md:text-base lg:text-lg max-w-2xl mb-8 leading-relaxed">
+                  Join Nigeria's premier fragrance business school and transform
+                  your passion into a profitable career.{" "}
+                  <strong className="font-bold text-white">
+                    Registration is free
+                  </strong>{" "}
+                  — pay only your course fee.
+                </p>
 
-              {/* Stats */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="mt-8 pt-6 border-t border-white/20"
-              >
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-white">
-                      100%
+                {/* Program Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-8">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-5">
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-white/75 mb-2">
+                      Popular
                     </div>
-                    <div className="text-white/80 text-sm md:text-base mt-1">
-                      Practical
+                    <div className="text-white font-bold text-base md:text-lg mb-1">
+                      Art of Perfumery
+                    </div>
+                    <div className="text-white/80 text-xs mb-3">
+                      6 Weeks · Tue–Thu
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-white mb-0.5">
+                      ₦600,000
+                    </div>
+                    <div className="text-white/60 text-xs line-through mb-2">
+                      ₦750,000
+                    </div>
+                    <div className="inline-block bg-white text-[#691C33] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      20% OFF
                     </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-white">
-                      24/7
+
+                  <div className="bg-white text-[#691C33] rounded-2xl p-4 md:p-5">
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-[#691C33]/70 mb-2">
+                      Pro
                     </div>
-                    <div className="text-white/80 text-sm md:text-base mt-1">
-                      Support
+                    <div className="font-bold text-base md:text-lg mb-1">
+                      Art of Perfumery
+                    </div>
+                    <div className="text-[#691C33]/70 text-xs mb-3">
+                      12 Weeks · Tue–Thu
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold mb-0.5">
+                      ₦800,000
+                    </div>
+                    <div className="text-[#691C33]/60 text-xs mb-2">
+                      Comprehensive program
+                    </div>
+                    <div className="inline-block bg-[#691C33] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      DEEP DIVE
                     </div>
                   </div>
-                  <div className="text-center col-span-2 md:col-span-1">
-                    <div className="text-2xl md:text-3xl font-bold text-white">
-                      ₦500K
+
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 md:p-5">
+                    <div className="text-[10px] font-bold tracking-wider uppercase text-white/75 mb-2">
+                      Quick Start
                     </div>
-                    <div className="text-white/80 text-sm md:text-base mt-1">
-                      Starting Tuition
+                    <div className="text-white font-bold text-base md:text-lg mb-1">
+                      1-Day Workshop
+                    </div>
+                    <div className="text-white/80 text-xs mb-3">
+                      Fri–Sun · 2-Hour Slot
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-white mb-0.5">
+                      ₦120,000
+                    </div>
+                    <div className="text-white/60 text-xs mb-2">
+                      Fast-track intro
+                    </div>
+                    <div className="inline-block bg-white text-[#691C33] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      FAST
                     </div>
                   </div>
                 </div>
-              </motion.div>
+
+                {/* Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => (window.location.href = "/enrollment")}
+                    className="w-full sm:w-auto bg-white text-[#691C33] px-6 py-3.5 md:py-4 rounded-xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-white/95 transition-colors"
+                  >
+                    <span>ENROLL NOW</span>
+                    <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
+                  </button>
+
+                  <button
+                    onClick={() => setShowCalendarModal(true)}
+                    className="w-full sm:w-auto border-2 border-white/40 text-white px-6 py-3.5 md:py-4 rounded-xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+                  >
+                    <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                    <span>VIEW SCHEDULE</span>
+                  </button>
+                </div>
+
+                {/* Bottom Stats */}
+                <div className="mt-8 pt-6 border-t border-white/20">
+                  <div className="grid grid-cols-3 gap-3 md:gap-6">
+                    <div className="text-center">
+                      <div className="text-lg md:text-3xl font-bold text-white">
+                        100%
+                      </div>
+                      <div className="text-white/75 text-xs md:text-sm mt-1">
+                        Practical
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg md:text-3xl font-bold text-white">
+                        FREE
+                      </div>
+                      <div className="text-white/75 text-xs md:text-sm mt-1">
+                        Registration
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg md:text-3xl font-bold text-white">
+                        24/7
+                      </div>
+                      <div className="text-white/75 text-xs md:text-sm mt-1">
+                        Support
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Calendar Modal */}
-      {showCalendarModal && (
-        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
+      {/* ─── Calendar Modal ──────────────────────────────── */}
+      <AnimatePresence>
+        {showCalendarModal && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="relative w-full max-w-6xl bg-white rounded-2xl md:rounded-3xl overflow-hidden max-h-[90vh] md:max-h-[85vh] flex flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setShowCalendarModal(false)}
           >
-            {/* Close Button */}
-            <button
-              onClick={() => setShowCalendarModal(false)}
-              className="absolute top-4 right-4 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#691C33]/10 backdrop-blur-sm border border-[#691C33]/20 flex items-center justify-center text-[#691C33] hover:bg-[#691C33]/20 transition-colors"
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-6xl bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden h-[100dvh] sm:h-auto sm:max-h-[92vh] flex flex-col"
             >
-              <X className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#691C33] to-[#8B2846] p-6 md:p-8 text-white">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-5 h-5 md:w-6 md:h-6" />
-                    <span className="text-sm md:text-base font-semibold uppercase tracking-wider">
-                      COMMERCIAL PERFUMERY MASTERCLASS
-                    </span>
-                  </div>
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-2">
-                    2-Week Intensive Program
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-4 text-white/90">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>April 27 - May 14, 2026</span>
+              {/* Header */}
+              <div className="bg-[#691C33] px-5 py-4 md:px-8 md:py-6 flex-shrink-0">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider text-white/80">
+                        Class Schedule
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <UsersIcon className="w-4 h-4" />
-                      <span>10:00 AM - 1:00 PM Daily</span>
+                    <h2
+                      className={`text-xl md:text-3xl font-black text-white leading-tight ${italiana.className}`}
+                    >
+                      {current.subtitle}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-3 text-white/90 text-xs md:text-sm mt-2">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span className="font-medium">{current.time}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <UsersIcon className="w-3.5 h-3.5" />
+                        <span className="font-medium">{current.days}</span>
+                      </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => setShowCalendarModal(false)}
+                    className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white hover:bg-white/25 transition-colors flex-shrink-0"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-5 border border-white/20">
-                  <div className="text-center">
-                    <div className="text-xl md:text-2xl font-bold">
-                      ₦500,000
-                    </div>
-                    <div className="text-sm text-white/80">Full Course Fee</div>
-                  </div>
+
+                {/* Program selector */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(Object.keys(programs) as ProgramId[]).map((key) => {
+                    const p = programs[key];
+                    const isActive = selectedProgram === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setSelectedProgram(key)}
+                        className={`px-3 py-2.5 rounded-xl text-xs md:text-sm font-semibold transition-all border-2 ${
+                          isActive
+                            ? "bg-white text-[#691C33] border-white"
+                            : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                        }`}
+                      >
+                        <span className="block leading-tight">{p.short}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-              <div className="grid lg:grid-cols-2 gap-6 md:gap-8">
-                {/* Left Column - Calendar */}
-                <div className="space-y-6">
-                  <div className="bg-white border border-[#691C33]/10 rounded-2xl p-4 md:p-6 shadow-lg">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl md:text-2xl font-bold text-[#691C33]">
-                        {formatDate(currentMonth)}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={prevMonth}
-                          className="w-8 h-8 rounded-lg bg-[#691C33]/10 flex items-center justify-center text-[#691C33] hover:bg-[#691C33]/20 transition-colors"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={nextMonth}
-                          className="w-8 h-8 rounded-lg bg-[#691C33]/10 flex items-center justify-center text-[#691C33] hover:bg-[#691C33]/20 transition-colors"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-2 mb-3">
-                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                        (day) => (
-                          <div
-                            key={day}
-                            className="text-center text-xs md:text-sm font-semibold text-[#691C33]/70 py-2"
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Calendar */}
+                  <div className="space-y-5">
+                    <div className="bg-white border-2 border-[#691C33]/10 rounded-2xl p-4 md:p-5">
+                      <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-lg md:text-xl font-bold text-[#691C33]">
+                          {formatMonthYear(currentMonth)}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={prevMonth}
+                            className="w-9 h-9 rounded-lg bg-[#691C33]/10 flex items-center justify-center text-[#691C33] hover:bg-[#691C33]/20 transition-colors"
+                            aria-label="Previous month"
                           >
-                            {day}
-                          </div>
-                        )
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-7 gap-2">
-                      {generateCalendar().map((date, index) => {
-                        const isClass = date && isClassDay(date);
-                        const isToday =
-                          date &&
-                          date.getDate() === new Date().getDate() &&
-                          date.getMonth() === new Date().getMonth() &&
-                          date.getFullYear() === new Date().getFullYear();
-
-                        return (
-                          <div
-                            key={index}
-                            className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all ${
-                              date
-                                ? isClass
-                                  ? "bg-[#691C33] text-white"
-                                  : isToday
-                                  ? "bg-[#691C33]/10 text-[#691C33] border-2 border-[#691C33]"
-                                  : "text-[#691C33] hover:bg-[#691C33]/5"
-                                : ""
-                            }`}
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={nextMonth}
+                            className="w-9 h-9 rounded-lg bg-[#691C33]/10 flex items-center justify-center text-[#691C33] hover:bg-[#691C33]/20 transition-colors"
+                            aria-label="Next month"
                           >
-                            {date && (
-                              <>
-                                <div className="text-xs opacity-70">
-                                  {getDayName(date)}
-                                </div>
-                                <div className="font-bold">
-                                  {date.getDate()}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-6 flex items-center justify-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#691C33]"></div>
-                        <span className="text-sm text-[#691C33]">
-                          Class Day
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#691C33]/10 border border-[#691C33]"></div>
-                        <span className="text-sm text-[#691C33]">Today</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Class Details Summary */}
-                  <div className="bg-gradient-to-br from-[#691C33]/5 to-[#8B2846]/5 rounded-2xl p-4 md:p-6 border border-[#691C33]/10">
-                    <h4 className="text-lg md:text-xl font-bold text-[#691C33] mb-4">
-                      Program Highlights
-                    </h4>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-[#691C33] mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h5 className="font-semibold text-[#691C33]">
-                            14 Days of Intensive Training
-                          </h5>
-                          <p className="text-[#691C33]/70 text-sm">
-                            3 hours daily, Monday to Friday
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-[#691C33] mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h5 className="font-semibold text-[#691C33]">
-                            Hands-on Practical Sessions
-                          </h5>
-                          <p className="text-[#691C33]/70 text-sm">
-                            Create 5+ signature fragrances
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-[#691C33] mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h5 className="font-semibold text-[#691C33]">
-                            Business Development
-                          </h5>
-                          <p className="text-[#691C33]/70 text-sm">
-                            Complete business plan & launch strategy
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-[#691C33] mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h5 className="font-semibold text-[#691C33]">
-                            Industry Certification
-                          </h5>
-                          <p className="text-[#691C33]/70 text-sm">
-                            Receive professional perfumer certification
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Schedule and Reminder Form */}
-                <div className="space-y-6">
-                  {/* Schedule */}
-                  <div className="bg-white border border-[#691C33]/10 rounded-2xl p-4 md:p-6 shadow-lg">
-                    <h3 className="text-xl md:text-2xl font-bold text-[#691C33] mb-4 md:mb-6">
-                      Detailed Schedule
-                    </h3>
-                    <div className="space-y-4 max-h-[300px] md:max-h-[400px] overflow-y-auto pr-2">
-                      {masterclassSchedule.map((session, index) => (
-                        <motion.div
-                          key={session.date}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="flex gap-4 p-3 md:p-4 rounded-xl border border-[#691C33]/10 hover:bg-[#691C33]/5 transition-colors"
-                        >
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg bg-[#691C33] text-white flex flex-col items-center justify-center">
-                              <div className="text-xs font-semibold">
-                                {session.day}
-                              </div>
-                              <div className="text-xs opacity-90">Day</div>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                              <h4 className="font-bold text-[#691C33] text-base md:text-lg">
-                                {session.title}
-                              </h4>
-                              <div className="text-xs md:text-sm font-medium bg-[#691C33]/10 text-[#691C33] px-2 py-1 rounded-full">
-                                {session.date}
-                              </div>
-                            </div>
-                            <p className="text-[#691C33]/70 text-sm md:text-base mb-2">
-                              {session.description}
-                            </p>
-                            <div className="flex items-center gap-2 text-sm text-[#691C33]/70">
-                              <Clock className="w-3 h-3 md:w-4 md:h-4" />
-                              <span>{session.time}</span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reminder Form */}
-                  <div className="bg-gradient-to-br from-[#691C33] to-[#8B2846] rounded-2xl p-4 md:p-6 text-white">
-                    <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
-                      <Bell className="w-5 h-5 md:w-6 md:h-6" />
-                      Set Reminders
-                    </h3>
-
-                    <div className="space-y-6">
-                      {/* Email Input */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Email Address
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70" />
-                          <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter your email address"
-                            className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl pl-12 pr-4 py-3 md:py-4 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50"
-                          />
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
 
-                      {/* Student Status */}
-                      <div>
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={isStudent}
-                              onChange={(e) => setIsStudent(e.target.checked)}
-                              className="sr-only"
-                            />
+                      {/* Day labels */}
+                      <div className="grid grid-cols-7 gap-1 md:gap-1.5 mb-2">
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                          (day) => (
                             <div
-                              className={`w-6 h-6 rounded-lg flex items-center justify-center ${
-                                isStudent
-                                  ? "bg-white"
-                                  : "bg-white/10 border border-white/20"
+                              key={day}
+                              className="text-center text-[10px] md:text-xs font-bold text-[#691C33]/60 py-1"
+                            >
+                              {day.slice(0, 1)}
+                            </div>
+                          ),
+                        )}
+                      </div>
+
+                      {/* Calendar grid */}
+                      <div className="grid grid-cols-7 gap-1 md:gap-1.5">
+                        {generateCalendar().map((date, index) => {
+                          const isClass =
+                            date && isClassDay(date, selectedProgram);
+                          const isToday =
+                            date &&
+                            date.getDate() === new Date().getDate() &&
+                            date.getMonth() === new Date().getMonth() &&
+                            date.getFullYear() === new Date().getFullYear();
+
+                          return (
+                            <div
+                              key={index}
+                              className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs md:text-sm transition-all ${
+                                date
+                                  ? isClass
+                                    ? "bg-[#691C33] text-white font-bold"
+                                    : isToday
+                                      ? "bg-[#691C33]/10 text-[#691C33] border-2 border-[#691C33]"
+                                      : "text-[#691C33] hover:bg-[#691C33]/5"
+                                  : ""
                               }`}
                             >
-                              {isStudent && (
-                                <GraduationCap className="w-4 h-4 text-[#691C33]" />
+                              {date && (
+                                <>
+                                  <div className="text-[9px] opacity-70 hidden md:block">
+                                    {getDayName(date)}
+                                  </div>
+                                  <div className="text-sm md:text-base font-bold">
+                                    {date.getDate()}
+                                  </div>
+                                </>
                               )}
                             </div>
-                          </div>
-                          <span className="font-medium">
-                            I am a student (special discounts available)
-                          </span>
-                        </label>
+                          );
+                        })}
                       </div>
 
-                      {/* Reminder Options */}
-                      <div>
-                        <label className="block text-sm font-medium mb-3">
-                          When would you like to be reminded?
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {reminderOptions.map((option) => (
-                            <button
-                              key={option.id}
-                              onClick={() => toggleReminder(option.id)}
-                              className={`flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
-                                selectedReminders.includes(option.id)
-                                  ? "bg-white text-[#691C33]"
-                                  : "bg-white/10 hover:bg-white/20 text-white"
-                              }`}
+                      {/* Legend */}
+                      <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded bg-[#691C33]"></div>
+                          <span className="text-xs text-[#691C33] font-medium">
+                            Class Day
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded bg-[#691C33]/10 border border-[#691C33]"></div>
+                          <span className="text-xs text-[#691C33] font-medium">
+                            Today
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Program window */}
+                      <div className="mt-4 pt-4 border-t border-[#691C33]/10 text-center text-xs md:text-sm text-[#691C33]">
+                        <span className="font-semibold">Runs:</span>{" "}
+                        {current.start} — {current.end}
+                      </div>
+                    </div>
+
+                    {/* Program highlights */}
+                    <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border-2 border-[#691C33]/10">
+                      <h4 className="text-base md:text-lg font-bold text-[#691C33] mb-4">
+                        Program Highlights
+                      </h4>
+                      <div className="space-y-3">
+                        {[
+                          {
+                            title: `${current.days} schedule`,
+                            desc: `Weekly classes · ${current.time}`,
+                          },
+                          {
+                            title: "Hands-on practical sessions",
+                            desc: "Learn by making real fragrances",
+                          },
+                          {
+                            title: "Business-ready curriculum",
+                            desc: "From craft to commercial launch",
+                          },
+                          {
+                            title: "Industry certification",
+                            desc: "Recognised perfumery certificate",
+                          },
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-[#691C33] mt-0.5 flex-shrink-0" />
+                            <div>
+                              <h5 className="font-semibold text-[#691C33] text-sm md:text-base leading-snug">
+                                {item.title}
+                              </h5>
+                              <p className="text-[#691C33] text-xs md:text-sm mt-0.5">
+                                {item.desc}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column — Weekly plan */}
+                  <div className="space-y-5">
+                    {selectedProgram === "oneday" ? (
+                      /* 1-Day Workshop schedule */
+                      <div className="bg-white border-2 border-[#691C33]/10 rounded-2xl p-4 md:p-5">
+                        <h3 className="text-lg md:text-xl font-bold text-[#691C33] mb-4">
+                          Pick Your Day & Time
+                        </h3>
+                        <p className="text-sm text-[#691C33] leading-relaxed mb-4">
+                          1-Day Workshop runs every{" "}
+                          <strong className="font-bold">
+                            Friday, Saturday and Sunday
+                          </strong>
+                          . Choose any available day and a 2-hour time slot.
+                        </p>
+
+                        <div className="space-y-3">
+                          {oneDaySchedule.map((day) => (
+                            <div
+                              key={day.day}
+                              className="rounded-2xl border-2 border-[#691C33]/10 p-4"
                             >
-                              <div
-                                className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  selectedReminders.includes(option.id)
-                                    ? "bg-[#691C33] text-white"
-                                    : "bg-white/20"
-                                }`}
-                              >
-                                {selectedReminders.includes(option.id) && (
-                                  <div className="w-2 h-2 rounded-full bg-white" />
-                                )}
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#691C33] flex items-center justify-center">
+                                  <Calendar className="w-4 h-4 text-white" />
+                                </div>
+                                <h4 className="font-bold text-[#691C33] text-sm md:text-base">
+                                  {day.day}
+                                </h4>
                               </div>
-                              <span className="text-sm font-medium">
-                                {option.label}
-                              </span>
-                            </button>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {day.slots.map((slot) => (
+                                  <div
+                                    key={slot}
+                                    className="bg-[#691C33]/5 border border-[#691C33]/15 rounded-xl px-3 py-2 text-xs md:text-sm font-medium text-[#691C33] text-center"
+                                  >
+                                    {slot}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 bg-[#691C33]/5 border border-[#691C33]/15 rounded-xl p-3 text-xs md:text-sm text-[#691C33] leading-relaxed">
+                          <span className="font-bold">Note:</span> Duration is{" "}
+                          <strong>2 hours</strong> per session. You'll be
+                          contacted to confirm your preferred day and time after
+                          enrollment.
+                        </div>
+                      </div>
+                    ) : (
+                      /* Art & Commercial weekly plan */
+                      <div className="bg-white border-2 border-[#691C33]/10 rounded-2xl p-4 md:p-5">
+                        <h3 className="text-lg md:text-xl font-bold text-[#691C33] mb-1">
+                          Weekly Schedule
+                        </h3>
+                        <p className="text-xs md:text-sm text-[#691C33]/80 mb-4">
+                          {current.days} · {current.time}
+                        </p>
+
+                        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                          {(selectedProgram === "commercial"
+                            ? commercialWeeklyPlan
+                            : artWeeklyPlan
+                          ).map((week, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-2xl border-2 border-[#691C33]/10 p-3 md:p-4"
+                            >
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="bg-[#691C33] text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                                  {week.week}
+                                </span>
+                                <h4 className="font-bold text-[#691C33] text-sm md:text-base leading-snug">
+                                  {week.theme}
+                                </h4>
+                              </div>
+                              <div className="space-y-2">
+                                {week.sessions.map((s, i) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-start gap-2 text-xs md:text-sm"
+                                  >
+                                    <span className="font-bold text-[#691C33] w-20 md:w-24 flex-shrink-0">
+                                      {s.day}
+                                    </span>
+                                    <span className="text-[#691C33] flex-1">
+                                      {s.topic}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
+                    )}
 
-                      {/* Submit Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleSetReminder}
-                        className="w-full bg-white text-[#691C33] py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-shadow"
-                      >
+                    {/* Reminder Form */}
+                    <div className="bg-[#691C33] rounded-2xl p-4 md:p-5">
+                      <h3 className="text-lg md:text-xl font-bold mb-4 flex items-center gap-2 text-white">
                         <Bell className="w-5 h-5" />
-                        <span>SET REMINDERS</span>
-                      </motion.button>
+                        Set Reminders
+                      </h3>
 
-                      <p className="text-white/70 text-xs md:text-sm text-center">
-                        We'll send you reminders about the program start date
-                        and important deadlines. No spam, unsubscribe anytime.
-                      </p>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs md:text-sm font-medium text-white/90 mb-2">
+                            Email Address
+                          </label>
+                          <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="you@example.com"
+                              className="w-full bg-white/10 border border-white/25 rounded-xl pl-11 pr-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isStudent}
+                            onChange={(e) => setIsStudent(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div
+                            className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
+                              isStudent
+                                ? "bg-white"
+                                : "bg-white/10 border border-white/25"
+                            }`}
+                          >
+                            {isStudent && (
+                              <GraduationCap className="w-3.5 h-3.5 text-[#691C33]" />
+                            )}
+                          </div>
+                          <span className="text-xs md:text-sm text-white/90">
+                            I am a student
+                          </span>
+                        </label>
+
+                        <div>
+                          <label className="block text-xs md:text-sm font-medium text-white/90 mb-2">
+                            When to remind you
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {reminderOptions.map((option) => {
+                              const isSelected = selectedReminders.includes(
+                                option.id,
+                              );
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => toggleReminder(option.id)}
+                                  className={`py-2.5 px-2 rounded-xl text-[11px] md:text-xs font-semibold transition-colors ${
+                                    isSelected
+                                      ? "bg-white text-[#691C33]"
+                                      : "bg-white/10 text-white hover:bg-white/20"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleSetReminder}
+                          className="w-full bg-white text-[#691C33] py-3 rounded-xl font-bold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-white/95 transition-colors"
+                        >
+                          <Bell className="w-4 h-4" />
+                          SET REMINDERS
+                        </button>
+
+                        <p className="text-white/60 text-[10px] md:text-xs text-center">
+                          No spam. Unsubscribe anytime.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Footer */}
-            <div className="border-t border-[#691C33]/10 p-4 md:p-6 bg-[#691C33]/5">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="text-center md:text-left">
-                  <p className="text-[#691C33] font-medium">
-                    Limited spots available for April 2026 cohort
+              {/* Footer */}
+              <div className="border-t border-[#691C33]/10 px-4 py-3 md:px-6 md:py-4 bg-[#691C33]/5 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-[#691C33] text-xs md:text-sm text-center sm:text-left">
+                    <span className="font-bold">Limited seats</span> · Next
+                    cohort starts April 2026
                   </p>
-                  <p className="text-[#691C33]/70 text-sm">
-                    Early enrollment discount ends March 15, 2026
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowCalendarModal(false)}
-                    className="px-6 py-3 rounded-xl border border-[#691C33] text-[#691C33] font-medium hover:bg-[#691C33]/5 transition-colors"
-                  >
-                    CLOSE
-                  </button>
-                  <button
-                    onClick={() => (window.location.href = "/enrollment")}
-                    className="px-6 py-3 rounded-xl bg-[#691C33] text-white font-medium hover:bg-[#8B2846] transition-colors flex items-center gap-2"
-                  >
-                    <Rocket className="w-4 h-4" />
-                    ENROLL NOW
-                  </button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => setShowCalendarModal(false)}
+                      className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl border-2 border-[#691C33]/25 text-[#691C33] font-semibold hover:bg-[#691C33]/5 transition-colors text-xs md:text-sm"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => (window.location.href = "/enrollment")}
+                      className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#691C33] text-white font-semibold hover:bg-[#691C33]/90 transition-colors flex items-center justify-center gap-2 text-xs md:text-sm"
+                    >
+                      <span>Enroll</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 };

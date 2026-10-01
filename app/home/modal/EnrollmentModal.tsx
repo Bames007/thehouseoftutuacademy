@@ -1,6 +1,6 @@
 // components/Forms/EnrollmentFormModal.tsx
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { alexBrush } from "@/app/utils/constants";
 import Image from "next/image";
@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Shield,
   Briefcase,
-  Upload,
   PenTool,
   Loader2,
   Mail,
@@ -24,15 +23,28 @@ import {
   Banknote,
   Smartphone,
   Globe,
-  ShieldCheck,
   Clock,
   MessageCircle,
+  Calendar,
 } from "lucide-react";
 
 interface EnrollmentFormModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const ACADEMY_WHATSAPP = "2349112644027";
+const ACADEMY_PHONE_DISPLAY = "+234 911 264 4027";
+const ACADEMY_PHONE_RAW = "+2349112644027";
+
+const ONE_DAY_DAYS = ["Friday", "Saturday", "Sunday"] as const;
+const ONE_DAY_SLOTS = [
+  { id: "12-2pm", label: "12:00 PM – 2:00 PM", short: "12–2pm" },
+  { id: "4-6pm", label: "4:00 PM – 6:00 PM", short: "4–6pm" },
+] as const;
+
+// Set this to false to skip the API call entirely (WhatsApp only)
+const USE_BACKEND_API = true;
 
 const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -44,18 +56,30 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
   const [signatureDate, setSignatureDate] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [emailSent, setEmailSent] = useState(false);
-  const [, setApplicationPaid] = useState(false);
   const [totalPaid, setTotalPaid] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [whatsappOpened, setWhatsappOpened] = useState(false);
 
-  const REGISTRATION_FEE = 20000;
+  const REGISTRATION_FEE = 0;
+
   const COURSE_FEES = {
-    "in-class": 650000,
-    online: 500000,
+    "offline-6weeks": 600000,
+    "offline-3months": 800000,
+    "intensive-1day": 120000,
+  };
+
+  const COURSE_FEE_LABELS: Record<keyof typeof COURSE_FEES, string> = {
+    "offline-6weeks": "6 Weeks Offline Masterclass",
+    "offline-3months": "3 Months Offline Masterclass",
+    "intensive-1day": "1 Day Intensive Class",
+  };
+
+  const COURSE_DURATIONS: Record<keyof typeof COURSE_FEES, string> = {
+    "offline-6weeks": "6 Weeks (12 sessions)",
+    "offline-3months": "3 Months",
+    "intensive-1day": "1 Day (2 hours)",
   };
 
   const [formData, setFormData] = useState({
-    // Personal Information
     fullName: "",
     phoneNumber: "",
     email: "",
@@ -63,22 +87,22 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     city: "",
     country: "Nigeria",
 
-    // Course Selection
-    program: "Commercial Perfumery Masterclass (2 Weeks)",
-    deliveryFormat: "online",
+    program: "Commercial Perfumery Masterclass",
+    deliveryFormat: "offline-6weeks" as keyof typeof COURSE_FEES,
 
-    // Business Background
+    oneDayDay: "" as "" | "Friday" | "Saturday" | "Sunday",
+    oneDaySlot: "" as "" | "12-2pm" | "4-6pm",
+
     hasBusiness: "no",
     businessName: "",
     expectations: "",
 
-    // Payment Information
     paymentMethod: "bank-transfer",
-    proofOfPayment: null as File | null,
     paymentReceiptNumber: "",
   });
 
   const totalSteps = 5;
+  const isOneDay = formData.deliveryFormat === "intensive-1day";
 
   const calculateTotal = () => {
     const courseFee =
@@ -92,6 +116,11 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
       currency: "NGN",
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const getOneDaySlotLabel = () => {
+    const slot = ONE_DAY_SLOTS.find((s) => s.id === formData.oneDaySlot);
+    return slot?.label || "";
   };
 
   useEffect(() => {
@@ -111,25 +140,15 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
 
-    if (type === "file") {
-      const fileInput = e.target as HTMLInputElement;
-      const file = fileInput.files?.[0] || null;
-      setFormData((prev) => ({
-        ...prev,
-        proofOfPayment: file,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-    // Clear error for this field
     if (formErrors[name]) {
       setFormErrors((prev) => {
         const newErrors = { ...prev };
@@ -140,12 +159,15 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
   };
 
   const handleRadioChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "deliveryFormat" && value !== "intensive-1day") {
+        next.oneDayDay = "";
+        next.oneDaySlot = "";
+      }
+      return next;
+    });
 
-    // Clear error for this field
     if (formErrors[name]) {
       setFormErrors((prev) => {
         const newErrors = { ...prev };
@@ -155,15 +177,25 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     }
   };
 
-  const handleFileUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleOneDaySelect = (
+    field: "oneDayDay" | "oneDaySlot",
+    value: string,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const validateStep = (step: number): boolean => {
     const errors: Record<string, string> = {};
 
     switch (step) {
-      case 1: // Personal Information
+      case 1:
         if (!formData.fullName.trim())
           errors.fullName = "Full name is required";
         if (!formData.phoneNumber.trim())
@@ -174,26 +206,30 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
         if (!formData.city.trim()) errors.city = "City is required";
         break;
 
-      case 2: // Course Selection
+      case 2:
         if (!formData.deliveryFormat)
-          errors.deliveryFormat = "Please select a delivery format";
+          errors.deliveryFormat = "Please select a program";
+        if (isOneDay) {
+          if (!formData.oneDayDay)
+            errors.oneDayDay = "Please select a day for your 1-Day class";
+          if (!formData.oneDaySlot)
+            errors.oneDaySlot = "Please select a time slot";
+        }
         break;
 
-      case 3: // Business Background
+      case 3:
         if (!formData.expectations.trim())
           errors.expectations = "Please share your expectations";
         break;
 
-      case 4: // Payment Information
+      case 4:
         if (!formData.paymentMethod)
           errors.paymentMethod = "Please select a payment method";
-        if (!formData.proofOfPayment)
-          errors.proofOfPayment = "Proof of payment is required";
         if (!totalPaid)
           errors.totalPayment = "You must confirm payment of the total amount";
         break;
 
-      case 5: // Terms & Agreement
+      case 5:
         if (!agreedToTerms)
           errors.agreedToTerms = "You must agree to the terms";
         if (!agreedToRefund)
@@ -215,7 +251,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     if (validateStep(currentStep)) {
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
-        // Scroll to top of form content
         const formContent = document.querySelector(".form-content");
         if (formContent) {
           formContent.scrollTop = 0;
@@ -239,92 +274,165 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const day = date.getDate().toString().padStart(2, "0");
     const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-
     return `TUTU-${year}${month}${day}-${random}`;
   };
 
-  const handleSubmit = async () => {
+  // ─── Build WhatsApp URL ──────────────────────────────────
+  const buildWhatsAppUrl = (receiptNumber: string) => {
+    const courseFee =
+      COURSE_FEES[formData.deliveryFormat as keyof typeof COURSE_FEES] || 0;
+    const total = calculateTotal();
+    const duration =
+      COURSE_DURATIONS[formData.deliveryFormat as keyof typeof COURSE_FEES];
+
+    const scheduleLines = isOneDay
+      ? [
+          `*Schedule (1-Day Intensive)*`,
+          `Day: ${formData.oneDayDay}`,
+          `Time Slot: ${getOneDaySlotLabel()}`,
+          `Duration: 2 hours`,
+          ``,
+        ]
+      : [];
+
+    const message = [
+      `*New Enrollment — The House of Tutu Perfumery Academy*`,
+      ``,
+      `*Receipt:* ${receiptNumber}`,
+      `*Program:* ${formData.program}`,
+      `*Format:* ${COURSE_FEE_LABELS[formData.deliveryFormat]}`,
+      `*Duration:* ${duration}`,
+      ...scheduleLines,
+      `*Personal Details*`,
+      `Name: ${formData.fullName}`,
+      `Phone: ${formData.phoneNumber}`,
+      `Email: ${formData.email}`,
+      `DOB: ${formData.dateOfBirth}`,
+      `Location: ${formData.city}, ${formData.country}`,
+      ``,
+      `*Business Background*`,
+      `Has Business: ${formData.hasBusiness}`,
+      formData.businessName ? `Business Name: ${formData.businessName}` : null,
+      `Expectations: ${formData.expectations}`,
+      ``,
+      `*Payment*`,
+      `Method: ${formData.paymentMethod}`,
+      `Registration Fee: FREE`,
+      `Course Fee: ${formatCurrency(courseFee)}`,
+      `*Total: ${formatCurrency(total)}*`,
+      formData.paymentReceiptNumber
+        ? `Payment Ref: ${formData.paymentReceiptNumber}`
+        : null,
+      ``,
+      `*Agreement*`,
+      `Signed by: ${signature}`,
+      `Date: ${signatureDate}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return `https://wa.me/${ACADEMY_WHATSAPP}?text=${encodeURIComponent(
+      message,
+    )}`;
+  };
+
+  // ─── Open WhatsApp with popup-blocker fallback ───────────
+  const openWhatsApp = (url: string) => {
+    if (typeof window === "undefined") return;
+
+    // Try to open in a new tab
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+
+    // If popup was blocked, fall back to same-tab navigation
+    if (!win || win.closed || typeof win.closed === "undefined") {
+      window.location.href = url;
+    }
+  };
+
+  // ─── Build API payload ───────────────────────────────────
+  const buildSubmissionData = (receiptNumber: string) => ({
+    fullName: formData.fullName,
+    phoneNumber: formData.phoneNumber,
+    email: formData.email,
+    dateOfBirth: formData.dateOfBirth,
+    city: formData.city,
+    country: formData.country,
+
+    program: formData.program,
+    deliveryFormat: formData.deliveryFormat,
+    deliveryFormatLabel: COURSE_FEE_LABELS[formData.deliveryFormat],
+    duration:
+      COURSE_DURATIONS[formData.deliveryFormat as keyof typeof COURSE_FEES],
+
+    oneDayDay: isOneDay ? formData.oneDayDay : null,
+    oneDaySlot: isOneDay ? formData.oneDaySlot : null,
+    oneDaySlotLabel: isOneDay ? getOneDaySlotLabel() : null,
+
+    hasBusiness: formData.hasBusiness,
+    businessName: formData.businessName || "",
+    expectations: formData.expectations,
+
+    paymentMethod: formData.paymentMethod,
+    paymentReceiptNumber: formData.paymentReceiptNumber || "",
+
+    registrationFee: REGISTRATION_FEE,
+    courseFee: COURSE_FEES[formData.deliveryFormat as keyof typeof COURSE_FEES],
+    totalAmount: calculateTotal(),
+
+    agreedToTerms,
+    agreedToRefund,
+    signature,
+    signatureDate,
+
+    receiptNumber,
+  });
+
+  // ─── FIXED handleSubmit ──────────────────────────────────
+  const handleSubmit = () => {
     if (!validateStep(5)) return;
 
     setIsSubmitting(true);
 
+    const receiptNumber = generateReceiptNumber();
+
+    // ✅ STEP 1: Open WhatsApp FIRST (synchronous — preserves user gesture)
     try {
-      const receiptNumber = generateReceiptNumber();
-
-      // Prepare submission data
-      const submissionData = {
-        // Personal Information
-        fullName: formData.fullName,
-        phoneNumber: formData.phoneNumber,
-        email: formData.email,
-        dateOfBirth: formData.dateOfBirth,
-        city: formData.city,
-        country: formData.country,
-
-        // Course Selection
-        program: formData.program,
-        deliveryFormat: formData.deliveryFormat,
-
-        // Business Background
-        hasBusiness: formData.hasBusiness,
-        businessName: formData.businessName || "",
-        expectations: formData.expectations,
-
-        // Payment Information
-        paymentMethod: formData.paymentMethod,
-        paymentReceiptNumber: formData.paymentReceiptNumber || "",
-
-        // Fees
-        registrationFee: REGISTRATION_FEE,
-        courseFee:
-          COURSE_FEES[formData.deliveryFormat as keyof typeof COURSE_FEES],
-        totalAmount: calculateTotal(),
-
-        // Agreement
-        agreedToTerms,
-        agreedToRefund,
-        signature,
-        signatureDate,
-
-        // Metadata
-        receiptNumber,
-      };
-
-      // Use the single API endpoint
-      const response = await fetch("/api/enrollment/process", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
-      });
-
-      const result = await response.json();
-      console.log("API Response:", result);
-
-      if (!response.ok || !result.success) {
-        throw new Error(
-          result.message || `HTTP ${response.status}: ${response.statusText}`
-        );
-      }
-
-      setEmailSent(result.emailSent);
-      setSubmitSuccess(true);
-
-      setTimeout(() => {
-        resetForm();
-        onClose();
-      }, 5000);
-    } catch (error: any) {
-      console.error("Submission error:", error);
-      setFormErrors({
-        submit:
-          error.message ||
-          "There was an error submitting your enrollment. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
+      const waUrl = buildWhatsAppUrl(receiptNumber);
+      openWhatsApp(waUrl);
+      setWhatsappOpened(true);
+    } catch (err) {
+      console.error("WhatsApp open failed:", err);
     }
+
+    // ✅ STEP 2: Show success immediately (don't wait for API)
+    setSubmitSuccess(true);
+
+    // ✅ STEP 3: Fire-and-forget API call (does not block or throw)
+    if (USE_BACKEND_API) {
+      const payload = buildSubmissionData(receiptNumber);
+      fetch("/api/enrollment/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          console.log("API Response:", result);
+          if (result?.emailSent) setEmailSent(true);
+        })
+        .catch((apiError) => {
+          // Silent — WhatsApp already handled the notification
+          console.warn("Background API error (non-blocking):", apiError);
+        });
+    }
+
+    // ✅ STEP 4: Reset + close after 8s
+    setTimeout(() => {
+      resetForm();
+      onClose();
+    }, 8000);
+
+    setIsSubmitting(false);
   };
 
   const resetForm = () => {
@@ -336,13 +444,14 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
       dateOfBirth: "",
       city: "",
       country: "Nigeria",
-      program: "Commercial Perfumery Masterclass (2 Weeks)",
-      deliveryFormat: "online",
+      program: "Commercial Perfumery Masterclass",
+      deliveryFormat: "offline-6weeks",
+      oneDayDay: "",
+      oneDaySlot: "",
       hasBusiness: "no",
       businessName: "",
       expectations: "",
       paymentMethod: "bank-transfer",
-      proofOfPayment: null,
       paymentReceiptNumber: "",
     });
     setAgreedToTerms(false);
@@ -352,8 +461,8 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     setFormErrors({});
     setSubmitSuccess(false);
     setEmailSent(false);
-    setApplicationPaid(false);
     setTotalPaid(false);
+    setWhatsappOpened(false);
   };
 
   useEffect(() => {
@@ -368,7 +477,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     };
   }, [isOpen]);
 
-  // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isSubmitting) onClose();
@@ -377,15 +485,18 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose, isSubmitting]);
 
+  const inputBase =
+    "w-full px-4 py-3.5 text-[#691C33] rounded-xl border bg-white outline-none transition-all text-base placeholder:text-[#691C33]/40 focus:ring-2 focus:ring-[#691C33]/20";
+
   const steps = [
+    // ─── STEP 1 ────────────────────────────────────────────
     {
       title: "Personal Information",
       icon: User,
       component: (
-        <div className="space-y-6">
-          {/* Full Name */}
+        <div className="space-y-5 md:space-y-6">
           <div>
-            <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
               Full Name *
             </label>
             <input
@@ -393,20 +504,22 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
-                formErrors.fullName ? "border-red-500" : "border-[#691C33]/30"
-              } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
-              placeholder="Enter your full name (as it will appear on certificate)"
+              className={`${inputBase} ${
+                formErrors.fullName ? "border-red-500" : "border-[#691C33]/25"
+              }`}
+              placeholder="Enter your full name"
             />
             {formErrors.fullName && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.fullName}</p>
+              <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {formErrors.fullName}
+              </p>
             )}
           </div>
 
-          {/* Phone & Email */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
             <div>
-              <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+              <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
                 Phone Number *
               </label>
               <input
@@ -414,21 +527,22 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
+                className={`${inputBase} ${
                   formErrors.phoneNumber
                     ? "border-red-500"
-                    : "border-[#691C33]/30"
-                } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
-                placeholder="+234 911 264 4027"
+                    : "border-[#691C33]/25"
+                }`}
+                placeholder={ACADEMY_PHONE_DISPLAY}
               />
               {formErrors.phoneNumber && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
                   {formErrors.phoneNumber}
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+              <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
                 Email Address *
               </label>
               <input
@@ -436,21 +550,23 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
-                  formErrors.email ? "border-red-500" : "border-[#691C33]/30"
-                } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
+                className={`${inputBase} ${
+                  formErrors.email ? "border-red-500" : "border-[#691C33]/25"
+                }`}
                 placeholder="you@example.com"
               />
               {formErrors.email && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {formErrors.email}
+                </p>
               )}
             </div>
           </div>
 
-          {/* Date of Birth & Location */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
             <div>
-              <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+              <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
                 Date of Birth *
               </label>
               <input
@@ -458,42 +574,43 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
-                className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
+                className={`${inputBase} ${
                   formErrors.dateOfBirth
                     ? "border-red-500"
-                    : "border-[#691C33]/30"
-                } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
+                    : "border-[#691C33]/25"
+                }`}
               />
               {formErrors.dateOfBirth && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
                   {formErrors.dateOfBirth}
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+              <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
                 City / Country *
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  className={`px-4 py-3 text-[#691C33] rounded-xl border ${
-                    formErrors.city ? "border-red-500" : "border-[#691C33]/30"
-                  } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
+                  className={`${inputBase} ${
+                    formErrors.city ? "border-red-500" : "border-[#691C33]/25"
+                  }`}
                   placeholder="City"
                 />
                 <select
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
-                  className={`px-4 py-3 text-[#691C33] rounded-xl border ${
+                  className={`${inputBase} ${
                     formErrors.country
                       ? "border-red-500"
-                      : "border-[#691C33]/30"
-                  } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
+                      : "border-[#691C33]/25"
+                  }`}
                 >
                   <option value="Nigeria">Nigeria</option>
                   <option value="Ghana">Ghana</option>
@@ -503,7 +620,8 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 </select>
               </div>
               {(formErrors.city || formErrors.country) && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
                   {formErrors.city || formErrors.country}
                 </p>
               )}
@@ -512,116 +630,235 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
         </div>
       ),
     },
+
+    // ─── STEP 2 ────────────────────────────────────────────
     {
-      title: "Course Selection",
+      title: "Choose Your Program",
       icon: GraduationCap,
       component: (
-        <div className="space-y-6">
-          {/* Program */}
-          <div>
-            <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
-              Program *
-            </label>
-            <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20">
-              <div className="flex items-center gap-3">
-                <GraduationCap className="w-5 h-5 text-[#691C33]" />
-                <span className="text-[#691C33] font-semibold">
-                  Commercial Perfumery Masterclass (2 Weeks)
+        <div className="space-y-5 md:space-y-6">
+          <div className="bg-[#691C33]/5 border border-[#691C33]/20 rounded-xl p-4">
+            <div className="text-[#691C33] font-bold text-sm md:text-base mb-1">
+              Free Registration
+            </div>
+            <div className="text-[#691C33]/70 text-xs md:text-sm">
+              No registration fee — pay only your course fee
+            </div>
+          </div>
+
+          {formErrors.deliveryFormat && (
+            <p className="text-red-500 text-sm flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {formErrors.deliveryFormat}
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() =>
+                handleRadioChange("deliveryFormat", "offline-6weeks")
+              }
+              className={`relative p-4 md:p-5 rounded-2xl border-2 transition-all text-left min-h-[130px] ${
+                formData.deliveryFormat === "offline-6weeks"
+                  ? "border-[#691C33] bg-[#691C33]/5"
+                  : "border-[#691C33]/20 hover:border-[#691C33]/60 bg-white"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] md:text-xs font-bold text-[#691C33] bg-[#691C33]/10 px-2.5 py-1 rounded-full">
+                  20% OFF
+                </span>
+                <span className="text-[10px] md:text-xs text-[#691C33]/60">
+                  Popular
                 </span>
               </div>
-            </div>
-          </div>
-
-          {/* Delivery Format */}
-          <div>
-            <label className="block text-[#691C33] font-medium mb-4 text-sm md:text-base">
-              Delivery Format *
-            </label>
-            {formErrors.deliveryFormat && (
-              <p className="text-red-500 text-sm mb-2">
-                {formErrors.deliveryFormat}
-              </p>
-            )}
-            <div className="grid md:grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => handleRadioChange("deliveryFormat", "in-class")}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  formData.deliveryFormat === "in-class"
-                    ? "border-[#691C33] bg-[#691C33]/10"
-                    : "border-[#691C33]/30 hover:border-[#691C33]"
-                }`}
-              >
-                <div className="text-center">
-                  <div
-                    className={`text-lg font-bold mb-2 ${
-                      formData.deliveryFormat === "in-class"
-                        ? "text-[#691C33]"
-                        : "text-[#691C33]/70"
-                    }`}
-                  >
-                    In-Class (Physical)
-                  </div>
-                  <div className="text-[#691C33] font-bold text-xl">
-                    ₦650,000
-                  </div>
-                  <div className="text-sm text-[#691C33]/60 mt-2">
-                    Hands-on training in Abuja
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRadioChange("deliveryFormat", "online")}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  formData.deliveryFormat === "online"
-                    ? "border-[#691C33] bg-[#691C33]/10"
-                    : "border-[#691C33]/30 hover:border-[#691C33]"
-                }`}
-              >
-                <div className="text-center">
-                  <div
-                    className={`text-lg font-bold mb-2 ${
-                      formData.deliveryFormat === "online"
-                        ? "text-[#691C33]"
-                        : "text-[#691C33]/70"
-                    }`}
-                  >
-                    Live Online
-                  </div>
-                  <div className="text-[#691C33] font-bold text-xl">
-                    ₦500,000
-                  </div>
-                  <div className="text-sm text-[#691C33]/60 mt-2">
-                    Live interactive sessions from anywhere
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Registration Fee Notice */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-blue-800 font-bold mb-1">
-                  Registration Fee Required
-                </h4>
-                <p className="text-blue-700 text-sm">
-                  A <span className="font-bold">₦20,000 registration fee</span>{" "}
-                  is required to secure your spot. This fee is included in the
-                  total tuition payment.
-                </p>
+              <div className="text-base md:text-lg font-bold text-[#691C33] mb-2">
+                6 Weeks Masterclass
               </div>
-            </div>
+              <div className="flex items-baseline gap-2 flex-wrap mb-1">
+                <span className="text-[#691C33] font-bold text-xl md:text-2xl">
+                  ₦600,000
+                </span>
+                <span className="text-[#691C33]/40 text-sm line-through">
+                  ₦750,000
+                </span>
+              </div>
+              <div className="text-xs md:text-sm text-[#691C33]/70">
+                Hands-on training in Abuja
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleRadioChange("deliveryFormat", "offline-3months")
+              }
+              className={`relative p-4 md:p-5 rounded-2xl border-2 transition-all text-left min-h-[130px] ${
+                formData.deliveryFormat === "offline-3months"
+                  ? "border-[#691C33] bg-[#691C33]/5"
+                  : "border-[#691C33]/20 hover:border-[#691C33]/60 bg-white"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] md:text-xs font-bold text-[#691C33] bg-[#691C33]/10 px-2.5 py-1 rounded-full">
+                  PRO
+                </span>
+                <span className="text-[10px] md:text-xs text-[#691C33]/60">
+                  Deep Dive
+                </span>
+              </div>
+              <div className="text-base md:text-lg font-bold text-[#691C33] mb-2">
+                3 Months Masterclass
+              </div>
+              <div className="text-[#691C33] font-bold text-xl md:text-2xl mb-1">
+                ₦800,000
+              </div>
+              <div className="text-xs md:text-sm text-[#691C33]/70">
+                Full comprehensive program
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleRadioChange("deliveryFormat", "intensive-1day")
+              }
+              className={`relative p-4 md:p-5 rounded-2xl border-2 transition-all text-left min-h-[130px] ${
+                formData.deliveryFormat === "intensive-1day"
+                  ? "border-[#691C33] bg-[#691C33]/5"
+                  : "border-[#691C33]/20 hover:border-[#691C33]/60 bg-white"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] md:text-xs font-bold text-[#691C33] bg-[#691C33]/10 px-2.5 py-1 rounded-full">
+                  QUICK START
+                </span>
+                <span className="text-[10px] md:text-xs text-[#691C33]/60">
+                  1 Day
+                </span>
+              </div>
+              <div className="text-base md:text-lg font-bold text-[#691C33] mb-2">
+                1 Day Intensive
+              </div>
+              <div className="text-[#691C33] font-bold text-xl md:text-2xl mb-1">
+                ₦120,000
+              </div>
+              <div className="text-xs md:text-sm text-[#691C33]/70">
+                Fast-track class in Abuja
+              </div>
+            </button>
           </div>
 
-          {/* Course Features */}
-          <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20">
-            <h4 className="text-[#691C33] font-bold mb-3">What's Included:</h4>
-            <ul className="space-y-2">
+          {/* 1-Day picker */}
+          <AnimatePresence>
+            {isOneDay && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <div className="bg-[#691C33] rounded-2xl p-4 md:p-5 text-white space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-base md:text-lg mb-1">
+                        Pick Your Day & Time
+                      </h4>
+                      <p className="text-white/80 text-xs md:text-sm">
+                        1-Day Intensive runs on Fridays, Saturdays, and Sundays
+                        only. Duration: 2 hours per session.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2.5 text-sm">
+                      Choose Your Day *
+                    </label>
+                    {formErrors.oneDayDay && (
+                      <p className="text-red-300 text-xs mb-2 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {formErrors.oneDayDay}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      {ONE_DAY_DAYS.map((day) => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => handleOneDaySelect("oneDayDay", day)}
+                          className={`py-3 rounded-xl border-2 font-medium transition-all text-sm ${
+                            formData.oneDayDay === day
+                              ? "bg-white text-[#691C33] border-white"
+                              : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-2.5 text-sm">
+                      Choose Your Time Slot *
+                    </label>
+                    {formErrors.oneDaySlot && (
+                      <p className="text-red-300 text-xs mb-2 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {formErrors.oneDaySlot}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {ONE_DAY_SLOTS.map((slot) => (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() =>
+                            handleOneDaySelect("oneDaySlot", slot.id)
+                          }
+                          className={`py-3.5 px-4 rounded-xl border-2 font-medium transition-all text-sm flex items-center justify-center gap-2 ${
+                            formData.oneDaySlot === slot.id
+                              ? "bg-white text-[#691C33] border-white"
+                              : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                          }`}
+                        >
+                          <Clock className="w-4 h-4" />
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {formData.oneDayDay && formData.oneDaySlot && (
+                    <div className="bg-white/10 border border-white/20 rounded-xl p-3 flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-white flex-shrink-0" />
+                      <span className="text-white/95">
+                        Your class:{" "}
+                        <span className="font-bold">{formData.oneDayDay}</span>{" "}
+                        ·{" "}
+                        <span className="font-bold">
+                          {getOneDaySlotLabel()}
+                        </span>{" "}
+                        · Duration: 2 hours
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border border-[#691C33]/15">
+            <h4 className="text-[#691C33] font-bold mb-3 text-sm md:text-base">
+              What's Included
+            </h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {[
                 "Student Handbook & Workbook",
                 "All Course Materials",
@@ -630,11 +867,8 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 "Direct Instructor Support",
                 "Lifetime Access to Updates",
               ].map((item, index) => (
-                <li
-                  key={index}
-                  className="flex items-center gap-2 text-sm md:text-base"
-                >
-                  <CheckCircle className="w-4 h-4 text-[#691C33]" />
+                <li key={index} className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-[#691C33] flex-shrink-0" />
                   <span className="text-[#691C33]/90">{item}</span>
                 </li>
               ))}
@@ -643,24 +877,25 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
         </div>
       ),
     },
+
+    // ─── STEP 3 ────────────────────────────────────────────
     {
       title: "Business Background",
       icon: Briefcase,
       component: (
-        <div className="space-y-6">
-          {/* Business Experience */}
+        <div className="space-y-5 md:space-y-6">
           <div>
-            <label className="block text-[#691C33] font-medium mb-4 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-3 text-sm md:text-base">
               Do you currently have a fragrance or beauty business? *
             </label>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleRadioChange("hasBusiness", "yes")}
-                className={`flex-1 py-3 rounded-xl border-2 transition-all ${
+                className={`py-3.5 rounded-xl border-2 font-medium transition-all ${
                   formData.hasBusiness === "yes"
                     ? "border-[#691C33] bg-[#691C33]/10 text-[#691C33]"
-                    : "border-[#691C33]/30 text-[#691C33]/70 hover:border-[#691C33]"
+                    : "border-[#691C33]/25 text-[#691C33]/70 hover:border-[#691C33]/60"
                 }`}
               >
                 Yes
@@ -668,10 +903,10 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
               <button
                 type="button"
                 onClick={() => handleRadioChange("hasBusiness", "no")}
-                className={`flex-1 py-3 rounded-xl border-2 transition-all ${
+                className={`py-3.5 rounded-xl border-2 font-medium transition-all ${
                   formData.hasBusiness === "no"
                     ? "border-[#691C33] bg-[#691C33]/10 text-[#691C33]"
-                    : "border-[#691C33]/30 text-[#691C33]/70 hover:border-[#691C33]"
+                    : "border-[#691C33]/25 text-[#691C33]/70 hover:border-[#691C33]/60"
                 }`}
               >
                 No
@@ -679,10 +914,9 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
             </div>
           </div>
 
-          {/* Business Name (Conditional) */}
           {formData.hasBusiness === "yes" && (
             <div>
-              <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+              <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
                 Business Name
               </label>
               <input
@@ -690,15 +924,14 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 name="businessName"
                 value={formData.businessName}
                 onChange={handleChange}
-                className="w-full px-4 py-3 text-[#691C33] rounded-xl border border-[#691C33]/30 focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base"
+                className={`${inputBase} border-[#691C33]/25`}
                 placeholder="Enter your business name"
               />
             </div>
           )}
 
-          {/* Expectations */}
           <div>
-            <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-2 text-sm md:text-base">
               What do you hope to gain from this program? *
             </label>
             <textarea
@@ -706,39 +939,39 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
               value={formData.expectations}
               onChange={handleChange}
               rows={4}
-              className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
+              className={`${inputBase} resize-none ${
                 formErrors.expectations
                   ? "border-red-500"
-                  : "border-[#691C33]/30"
-              } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base resize-none`}
+                  : "border-[#691C33]/25"
+              }`}
               placeholder="Share your goals and expectations..."
             />
             {formErrors.expectations && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
                 {formErrors.expectations}
               </p>
             )}
           </div>
 
-          {/* Program Benefits */}
-          <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20">
-            <h4 className="text-[#691C33] font-bold mb-3">You'll Learn:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border border-[#691C33]/15">
+            <h4 className="text-[#691C33] font-bold mb-3 text-sm md:text-base">
+              You'll Learn
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {[
-                "Understanding fragrance oil grades (A, B, C, diffuser, burning)",
-                "Top, middle, and base notes explained in simple terms",
+                "Understanding fragrance oil grades",
+                "Top, middle, and base notes explained",
                 "How fragrance houses produce different grades",
-                "Choosing the right oil for each product type",
-                "Supplier Sourcing & Pricing",
+                "Choosing the right oil for each product",
+                "Supplier sourcing & pricing",
                 "Branding and packaging fundamentals",
-                "Business Launch Planning",
+                "Business launch planning",
                 "Pricing, costing & profit calculation",
               ].map((item, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-[#691C33]"></div>
-                  <span className="text-[#691C33]/90 text-sm md:text-base">
-                    {item}
-                  </span>
+                <div key={index} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#691C33] mt-2 flex-shrink-0"></div>
+                  <span className="text-[#691C33]/90 text-sm">{item}</span>
                 </div>
               ))}
             </div>
@@ -746,90 +979,94 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
         </div>
       ),
     },
+
+    // ─── STEP 4 ────────────────────────────────────────────
     {
       title: "Payment Information",
       icon: DollarSign,
       component: (
-        <div className="space-y-6">
-          {/* Payment Breakdown */}
+        <div className="space-y-5 md:space-y-6">
           <div>
-            <label className="block text-[#691C33] font-medium mb-4 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-3 text-sm md:text-base">
               Payment Breakdown
             </label>
-            <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20 space-y-3">
-              {/* Registration Fee */}
+            <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border border-[#691C33]/15 space-y-3">
               <div className="flex justify-between items-center pb-3 border-b border-[#691C33]/10">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-4 h-4 text-[#691C33]" />
-                  <span className="text-[#691C33]">Registration Fee</span>
+                  <span className="text-[#691C33] font-medium text-sm md:text-base">
+                    Registration Fee
+                  </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-[#691C33] font-bold">
-                    {formatCurrency(REGISTRATION_FEE)}
-                  </div>
-                  <div className="text-xs text-red-600 font-medium">
-                    Non-refundable
-                  </div>
+                <div className="text-[#691C33] font-bold text-sm md:text-base">
+                  FREE
                 </div>
               </div>
 
-              {/* Course Fee */}
               <div className="flex justify-between items-center pb-3 border-b border-[#691C33]/10">
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-[#691C33]" />
-                  <span className="text-[#691C33]">
-                    {formData.deliveryFormat === "in-class"
-                      ? "In-Class Course Fee"
-                      : "Online Course Fee"}
+                <div className="flex items-center gap-2 min-w-0">
+                  <GraduationCap className="w-4 h-4 text-[#691C33] flex-shrink-0" />
+                  <span className="text-[#691C33] text-sm md:text-base truncate">
+                    {COURSE_FEE_LABELS[formData.deliveryFormat]}
                   </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-[#691C33] font-bold">
+                <div className="text-right flex-shrink-0 ml-2">
+                  <div className="text-[#691C33] font-bold text-sm md:text-base">
                     {formatCurrency(
                       COURSE_FEES[
                         formData.deliveryFormat as keyof typeof COURSE_FEES
-                      ] || 0
+                      ] || 0,
                     )}
                   </div>
                   <div className="text-xs text-[#691C33]/60">
-                    {formData.deliveryFormat === "in-class"
-                      ? "Physical training"
-                      : "Online live sessions"}
+                    {
+                      COURSE_DURATIONS[
+                        formData.deliveryFormat as keyof typeof COURSE_FEES
+                      ]
+                    }
                   </div>
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center pt-2 bg-[#691C33]/10 rounded-lg p-3">
+              {isOneDay && formData.oneDayDay && formData.oneDaySlot && (
+                <div className="flex items-start gap-2 pb-3 border-b border-[#691C33]/10 text-sm">
+                  <Calendar className="w-4 h-4 text-[#691C33] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-[#691C33] font-medium">
+                      Your selected class
+                    </div>
+                    <div className="text-[#691C33]/70 text-xs md:text-sm">
+                      {formData.oneDayDay} · {getOneDaySlotLabel()} · 2 hours
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center bg-[#691C33]/10 rounded-xl p-3.5">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-[#691C33]" />
-                  <span className="text-[#691C33] font-bold text-lg">
-                    Total Amount Due
+                  <span className="text-[#691C33] font-bold text-base md:text-lg">
+                    Total
                   </span>
                 </div>
-                <div className="text-right">
-                  <div className="text-[#691C33] font-bold text-xl">
-                    {formatCurrency(calculateTotal())}
-                  </div>
-                  <div className="text-xs text-[#691C33]/60">
-                    Payable in full
-                  </div>
+                <div className="text-[#691C33] font-bold text-lg md:text-xl">
+                  {formatCurrency(calculateTotal())}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Confirmation */}
           <div>
-            <label className="block text-[#691C33] font-medium mb-4 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-3 text-sm md:text-base">
               Payment Method *
             </label>
             {formErrors.paymentMethod && (
-              <p className="text-red-500 text-sm mb-2">
+              <p className="text-red-500 text-sm mb-2 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
                 {formErrors.paymentMethod}
               </p>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 {
                   value: "bank-transfer",
@@ -853,286 +1090,162 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                   onClick={() =>
                     handleRadioChange("paymentMethod", method.value)
                   }
-                  className={`py-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  className={`py-3.5 px-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
                     formData.paymentMethod === method.value
                       ? "border-[#691C33] bg-[#691C33]/10 text-[#691C33]"
-                      : "border-[#691C33]/30 text-[#691C33]/70 hover:border-[#691C33]"
+                      : "border-[#691C33]/25 text-[#691C33]/70 hover:border-[#691C33]/60"
                   }`}
                 >
-                  <method.icon className="w-6 h-6" />
-                  <span>{method.label}</span>
+                  <method.icon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{method.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Bank Details (if bank transfer) */}
-          {formData.paymentMethod === "bank-transfer" && (
-            <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20">
-              <h4 className="text-[#691C33] font-bold mb-3 flex items-center gap-2">
-                <Receipt className="w-5 h-5" />
-                Bank Transfer Details:
-              </h4>
-              <div className="space-y-3 text-sm md:text-base">
-                <div className="bg-white p-3 rounded-lg border border-[#691C33]/20">
-                  <div className="flex justify-between">
-                    <span className="text-[#691C33]/70">Bank Name:</span>
-                    <span className="text-[#691C33] font-medium">
-                      Guaranty Trust Bank
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#691C33]/70">Account Name:</span>
-                    <span className="text-[#691C33] font-medium">
-                      The House of Tutu Perfumery Academy
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#691C33]/70">Account Number:</span>
-                    <span className="text-[#691C33] font-medium">
-                      0123456789
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-yellow-800 font-bold">
-                      Amount to Pay:
-                    </span>
-                    <span className="text-yellow-800 font-bold text-lg">
-                      {formatCurrency(calculateTotal())}
-                    </span>
-                  </div>
-                  <p className="text-yellow-700 text-sm mt-2">
-                    <span className="font-bold">Important:</span> Pay the exact
-                    total amount shown above. Include your full name as payment
-                    reference.
-                  </p>
-                </div>
-
-                {/* Total Payment Confirmation Checkbox */}
-                <div className="flex items-start gap-3 mt-4">
-                  <input
-                    type="checkbox"
-                    id="totalPaid"
-                    checked={totalPaid}
-                    onChange={(e) => setTotalPaid(e.target.checked)}
-                    className={`mt-1 w-5 h-5 text-[#691C33] rounded ${
-                      formErrors.totalPayment
-                        ? "border-red-500"
-                        : "border-[#691C33]"
-                    } focus:ring-[#691C33]/20`}
-                  />
-                  <label
-                    htmlFor="totalPaid"
-                    className="text-[#691C33] text-sm md:text-base"
-                  >
-                    I confirm that I have paid the total amount of{" "}
-                    <span className="font-bold">
-                      {formatCurrency(calculateTotal())}
-                    </span>{" "}
-                    (including ₦20,000 non-refundable registration fee)
-                  </label>
-                </div>
-                {formErrors.totalPayment && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formErrors.totalPayment}
-                  </p>
-                )}
+          <div className="bg-[#691C33]/5 rounded-2xl p-5 md:p-6 border border-[#691C33]/15">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#691C33] flex items-center justify-center flex-shrink-0">
+                <Phone className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[#691C33] font-bold text-sm md:text-base mb-2">
+                  Complete Payment by Phone
+                </h4>
+                <p className="text-[#691C33]/80 text-sm leading-relaxed mb-3">
+                  To complete your payment, please call or WhatsApp our
+                  admissions team directly. They will guide you through the
+                  transfer and confirm your enrollment.
+                </p>
+                <a
+                  href={`tel:${ACADEMY_PHONE_RAW}`}
+                  className="inline-flex items-center gap-2 bg-[#691C33] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#691C33]/90 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  Call {ACADEMY_PHONE_DISPLAY}
+                </a>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Proof of Payment Upload */}
           <div>
-            <label className="block text-[#691C33] font-medium mb-2 text-sm md:text-base">
-              Proof of Payment *
+            <label className="block text-[#691C33] font-semibold mb-3 text-sm md:text-base">
+              Confirm Payment
             </label>
-            {formErrors.proofOfPayment && (
-              <p className="text-red-500 text-sm mb-2">
-                {formErrors.proofOfPayment}
+            <div className="flex items-start gap-3 bg-white border border-[#691C33]/20 rounded-xl p-4">
+              <input
+                type="checkbox"
+                id="totalPaid"
+                checked={totalPaid}
+                onChange={(e) => setTotalPaid(e.target.checked)}
+                className={`mt-1 w-5 h-5 text-[#691C33] rounded flex-shrink-0 ${
+                  formErrors.totalPayment
+                    ? "border-red-500"
+                    : "border-[#691C33]"
+                } focus:ring-[#691C33]/20`}
+              />
+              <label
+                htmlFor="totalPaid"
+                className="text-[#691C33] text-sm md:text-base leading-relaxed"
+              >
+                I confirm I have paid or am paying{" "}
+                <span className="font-bold">
+                  {formatCurrency(calculateTotal())}
+                </span>{" "}
+                to the academy via phone confirmation.
+              </label>
+            </div>
+            {formErrors.totalPayment && (
+              <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {formErrors.totalPayment}
               </p>
             )}
-            <div
-              className={`border-2 border-dashed ${
-                formErrors.proofOfPayment
-                  ? "border-red-500"
-                  : "border-[#691C33]/30"
-              } rounded-xl p-6 text-center hover:border-[#691C33] transition-colors cursor-pointer`}
-              onClick={handleFileUploadClick}
-            >
-              <Upload className="w-12 h-12 text-[#691C33]/50 mx-auto mb-3" />
-              <input
-                ref={fileInputRef}
-                type="file"
-                name="proofOfPayment"
-                onChange={handleChange}
-                className="hidden"
-                id="proofOfPayment"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-              />
-              <div>
-                <div className="text-[#691C33] font-medium mb-2">
-                  Upload proof of payment
-                </div>
-                <div className="text-[#691C33]/60 text-sm mb-3">
-                  Upload screenshot/photo of payment receipt (PDF, JPG, PNG -
-                  Max 5MB)
-                </div>
-                <div className="bg-[#691C33] text-white px-6 py-2 rounded-lg inline-block hover:bg-[#691C33]/90 transition-colors">
-                  Choose File
-                </div>
-              </div>
-              {formData.proofOfPayment && (
-                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">File uploaded:</span>
-                    <span className="text-sm">
-                      {formData.proofOfPayment.name}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       ),
     },
+
+    // ─── STEP 5 ────────────────────────────────────────────
     {
       title: "Terms & Agreement",
       icon: FileText,
       component: (
-        <div className="space-y-6">
-          {/* Success Message */}
+        <div className="space-y-5 md:space-y-6">
           {submitSuccess && (
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
-              <div className="flex items-start gap-4">
-                <div className="bg-green-100 p-3 rounded-full">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="bg-[#691C33]/5 border border-[#691C33]/20 rounded-2xl p-5 md:p-6">
+              <div className="flex items-start gap-3 md:gap-4">
+                <div className="bg-[#691C33] p-2.5 md:p-3 rounded-full flex-shrink-0">
+                  <CheckCircle className="w-6 h-6 md:w-8 md:h-8 text-white" />
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-green-800 font-bold text-xl mb-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-[#691C33] font-bold text-lg md:text-xl mb-3">
                     Enrollment Successful
                   </h4>
 
-                  {/* Email Confirmation */}
-                  {emailSent && (
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2 text-blue-700 mb-2">
-                        <Mail className="w-5 h-5" />
-                        <span className="font-bold">
-                          Email Confirmation Sent
-                        </span>
+                  {whatsappOpened && (
+                    <div className="mb-3 p-3 bg-white rounded-lg border border-[#691C33]/20">
+                      <div className="flex items-center gap-2 text-[#691C33] mb-1 text-sm">
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="font-bold">Academy Notified</span>
                       </div>
-                      <p className="text-blue-700 text-sm">
-                        A detailed confirmation email has been sent to{" "}
-                        <span className="font-bold">{formData.email}</span>{" "}
-                        with:
+                      <p className="text-[#691C33]/80 text-xs md:text-sm">
+                        Your enrollment details have been sent to our admissions
+                        team on WhatsApp.
+                        {isOneDay &&
+                          formData.oneDayDay &&
+                          formData.oneDaySlot && (
+                            <>
+                              {" "}
+                              Your 1-Day class is booked for{" "}
+                              <span className="font-bold">
+                                {formData.oneDayDay}
+                              </span>{" "}
+                              at{" "}
+                              <span className="font-bold">
+                                {getOneDaySlotLabel()}
+                              </span>
+                              .
+                            </>
+                          )}
                       </p>
-                      <ul className="text-blue-700 text-sm mt-2 space-y-1">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span>Enrollment receipt and details</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span>Course schedule and access instructions</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span>WhatsApp group invitation link</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span>Next steps and preparation guide</span>
-                        </li>
-                      </ul>
                     </div>
                   )}
 
-                  {/* Contact Information */}
-                  <div className="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="flex items-center gap-2 text-purple-700 mb-2">
-                      <Phone className="w-5 h-5" />
-                      <span className="font-bold">Need Assistance</span>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-purple-700 text-sm">
-                        Our enrollment team is ready to help you:
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                        <div className="bg-white p-3 rounded-lg border border-purple-100">
-                          <div className="flex items-center gap-2 font-bold text-purple-800 mb-1">
-                            <Phone className="w-4 h-4" />
-                            <span>Call Us</span>
-                          </div>
-                          <div className="text-lg font-bold text-purple-700">
-                            +234 901 234 5678
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-purple-600">
-                            <Clock className="w-3 h-3" />
-                            <span>Monday - Friday, 9AM - 5PM</span>
-                          </div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-purple-100">
-                          <div className="flex items-center gap-2 font-bold text-purple-800 mb-1">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>WhatsApp</span>
-                          </div>
-                          <div className="text-lg font-bold text-purple-700">
-                            +234 911 264 4027
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-purple-600">
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>24/7 Enrollment Support</span>
-                          </div>
-                        </div>
+                  {emailSent && (
+                    <div className="mb-3 p-3 bg-white rounded-lg border border-[#691C33]/20">
+                      <div className="flex items-center gap-2 text-[#691C33] mb-1 text-sm">
+                        <Mail className="w-4 h-4" />
+                        <span className="font-bold">Email Sent</span>
                       </div>
+                      <p className="text-[#691C33]/80 text-xs md:text-sm break-all">
+                        Confirmation sent to{" "}
+                        <span className="font-bold">{formData.email}</span>
+                      </p>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Next Steps */}
-                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <h5 className="text-amber-800 font-bold mb-2 flex items-center gap-2">
+                  <div className="p-3 bg-white rounded-lg border border-[#691C33]/20">
+                    <h5 className="text-[#691C33] font-bold mb-2 flex items-center gap-2 text-sm">
                       <Clock className="w-4 h-4" />
                       What happens next
                     </h5>
-                    <ol className="text-amber-700 text-sm space-y-2">
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                          1
-                        </div>
-                        <span>
-                          Our team will verify your payment within 24 hours
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                          2
-                        </div>
-                        <span>
-                          You will receive course access credentials via email
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                          3
-                        </div>
-                        <span>
-                          Join the exclusive WhatsApp group for students
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                          4
-                        </div>
-                        <span>
-                          Attend the orientation session (date/time will be
-                          shared)
-                        </span>
-                      </li>
+                    <ol className="text-[#691C33]/80 text-xs md:text-sm space-y-2">
+                      {[
+                        "Payment verified within 24 hours",
+                        "Course access sent via email",
+                        "Join the student WhatsApp group",
+                        isOneDay
+                          ? "Attend your 1-Day class on the selected day"
+                          : "Attend orientation session",
+                      ].map((step, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <div className="w-5 h-5 rounded-full bg-[#691C33]/10 text-[#691C33] font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {i + 1}
+                          </div>
+                          <span>{step}</span>
+                        </li>
+                      ))}
                     </ol>
                   </div>
                 </div>
@@ -1140,19 +1253,20 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
             </div>
           )}
 
-          {/* Student Agreement */}
-          <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20 max-h-60 overflow-y-auto">
-            <h4 className="text-[#691C33] font-bold mb-3">
+          <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border border-[#691C33]/15 max-h-56 overflow-y-auto">
+            <h4 className="text-[#691C33] font-bold mb-3 text-sm md:text-base">
               Student Agreement Summary
             </h4>
-            <div className="space-y-3 text-sm md:text-base">
+            <div className="space-y-2.5 text-sm">
               {[
                 "Attend classes regularly and participate actively",
                 "Submit assignments and final project on time",
                 "Maintain professionalism and respect",
                 "Follow all academy policies and rules",
                 "Complete all assignments with original work",
-                "Attend at least 80% of classes for certification",
+                isOneDay
+                  ? "Attend your full 2-hour session on the selected day"
+                  : "Attend at least 80% of classes for certification",
                 "Maintain confidentiality of course materials",
                 "No recording of classes without permission",
               ].map((term, index) => (
@@ -1164,51 +1278,35 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
             </div>
           </div>
 
-          {/* Refund Policy Summary */}
-          <div className="bg-[#691C33]/5 rounded-xl p-4 border border-[#691C33]/20">
-            <h4 className="text-[#691C33] font-bold mb-3 flex items-center gap-2">
+          <div className="bg-[#691C33]/5 rounded-2xl p-4 md:p-5 border border-[#691C33]/15">
+            <h4 className="text-[#691C33] font-bold mb-3 flex items-center gap-2 text-sm md:text-base">
               <AlertCircle className="w-5 h-5" />
-              Refund Policy Summary
+              Refund Policy
             </h4>
-            <div className="space-y-3 text-sm md:text-base">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex items-start gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#691C33] mt-1.5 flex-shrink-0"></div>
                 <span className="text-[#691C33]/90">
-                  <span className="font-bold">Registration Fee (₦20,000)</span>{" "}
-                  - Non-refundable under any circumstances
+                  <span className="font-bold">50% refund</span> — 7+ days before
+                  start
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <div className="flex items-start gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#691C33] mt-1.5 flex-shrink-0"></div>
                 <span className="text-[#691C33]/90">
-                  <span className="font-bold">70% course fee refund</span> - 7+
-                  days before start
+                  <span className="font-bold">No refund</span> — After 7 days of
+                  start
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                <span className="text-[#691C33]/90">
-                  <span className="font-bold">50% course fee refund</span> - 3-6
-                  days before start
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <span className="text-[#691C33]/90">
-                  <span className="font-bold">No course fee refund</span> -
-                  Within 48 hours of start
-                </span>
-              </div>
-              <div className="mt-2 pt-2 border-t border-[#691C33]/20">
-                <p className="text-[#691C33]/80 italic text-sm">
-                  Once program begins, no refunds except documented medical
+              <div className="mt-2 pt-2 border-t border-[#691C33]/15">
+                <p className="text-[#691C33]/70 italic text-xs md:text-sm">
+                  Once the program begins, no refunds except documented medical
                   emergencies (partial credit may be offered).
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Agreement Checkboxes */}
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <input
@@ -1216,7 +1314,7 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 id="agreeTerms"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className={`mt-1 w-5 h-5 text-[#691C33] rounded ${
+                className={`mt-1 w-5 h-5 text-[#691C33] rounded flex-shrink-0 ${
                   formErrors.agreedToTerms
                     ? "border-red-500"
                     : "border-[#691C33]"
@@ -1224,10 +1322,10 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
               />
               <label
                 htmlFor="agreeTerms"
-                className="text-[#691C33] text-sm md:text-base"
+                className="text-[#691C33] text-sm md:text-base leading-relaxed"
               >
-                I have read and agree to the Student Agreement terms and
-                conditions listed above.
+                I have read and agree to the Student Agreement terms listed
+                above.
               </label>
             </div>
             {formErrors.agreedToTerms && (
@@ -1242,7 +1340,7 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 id="agreeRefund"
                 checked={agreedToRefund}
                 onChange={(e) => setAgreedToRefund(e.target.checked)}
-                className={`mt-1 w-5 h-5 text-[#691C33] rounded ${
+                className={`mt-1 w-5 h-5 text-[#691C33] rounded flex-shrink-0 ${
                   formErrors.agreedToRefund
                     ? "border-red-500"
                     : "border-[#691C33]"
@@ -1250,13 +1348,9 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
               />
               <label
                 htmlFor="agreeRefund"
-                className="text-[#691C33] text-sm md:text-base"
+                className="text-[#691C33] text-sm md:text-base leading-relaxed"
               >
-                I understand and accept the Refund Policy, including the{" "}
-                <span className="font-bold text-red-600">
-                  non-refundable ₦20,000 registration fee
-                </span>
-                .
+                I understand and accept the Refund Policy.
               </label>
             </div>
             {formErrors.agreedToRefund && (
@@ -1266,70 +1360,62 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
             )}
           </div>
 
-          {/* Digital Signature */}
           <div>
-            <label className="block text-[#691C33] font-medium mb-4 text-sm md:text-base">
+            <label className="block text-[#691C33] font-semibold mb-3 text-sm md:text-base">
               Digital Signature *
             </label>
-            <div className="border-2 border-[#691C33]/30 rounded-xl p-4">
+            <div className="border-2 border-[#691C33]/25 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <PenTool className="w-5 h-5 text-[#691C33]" />
-                <span className="text-[#691C33] font-medium">Sign below</span>
+                <span className="text-[#691C33] font-medium text-sm md:text-base">
+                  Sign below
+                </span>
               </div>
 
-              {/* Full Name Verification */}
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 text-blue-700 text-sm mb-2">
+              <div className="mb-4 p-3 bg-[#691C33]/5 rounded-lg border border-[#691C33]/15">
+                <div className="flex items-center gap-2 text-[#691C33]/70 text-xs md:text-sm mb-1">
                   <CheckCircle className="w-4 h-4" />
-                  <span className="font-medium">
-                    Your registered full name:
-                  </span>
+                  <span>Your registered name:</span>
                 </div>
-                <div className="text-blue-800 font-bold text-lg">
+                <div className="text-[#691C33] font-bold text-base md:text-lg break-words">
                   {formData.fullName || "Not provided yet"}
                 </div>
-                <p className="text-blue-600 text-xs mt-1">
-                  Your signature must match this name exactly
-                </p>
               </div>
 
-              {/* Signature Input with Alex Brush Font */}
               <div className="mb-4">
-                <label className="block text-[#691C33] font-medium mb-2 text-sm">
+                <label className="block text-[#691C33] font-medium mb-2 text-xs md:text-sm">
                   Type your full name as signature:
                 </label>
                 <input
                   type="text"
                   value={signature}
                   onChange={(e) => setSignature(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border bg-white ${
+                  className={`w-full px-4 py-3.5 rounded-xl border bg-white outline-none transition-all ${
                     formErrors.signature
                       ? "border-red-500"
-                      : "border-[#691C33]/30"
-                  } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base ${
+                      : "border-[#691C33]/25"
+                  } focus:ring-2 focus:ring-[#691C33]/20 ${
                     alexBrush.className
                   } text-2xl text-[#691C33]`}
-                  placeholder="Your signature appears here"
+                  placeholder="Your signature"
                 />
 
-                {/* Signature Preview */}
                 {signature && (
-                  <div className="mt-2 p-3 bg-gradient-to-r from-[#691C33]/5 to-[#691C33]/10 rounded-lg border border-[#691C33]/20">
+                  <div className="mt-3 p-3 bg-[#691C33]/5 rounded-lg border border-[#691C33]/15">
                     <div className="text-[#691C33]/70 text-xs mb-1">
-                      Signature Preview:
+                      Preview:
                     </div>
                     <div
-                      className={`text-3xl text-[#691C33] ${alexBrush.className} text-center py-2 border-b border-[#691C33]/20`}
+                      className={`text-2xl md:text-3xl text-[#691C33] ${alexBrush.className} text-center py-2 border-b border-[#691C33]/20 break-words`}
                     >
                       {signature}
                     </div>
                     <div className="flex justify-between items-center mt-2 text-xs text-[#691C33]/60">
-                      <span>Date: {signatureDate}</span>
+                      <span>{signatureDate}</span>
                       <span>
-                        Status:{" "}
                         {formData.fullName.toLowerCase() ===
                         signature.toLowerCase() ? (
-                          <span className="text-green-600 font-medium">
+                          <span className="text-[#691C33] font-medium">
                             Matches
                           </span>
                         ) : (
@@ -1343,57 +1429,52 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 )}
 
                 {formErrors.signature && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
                     {formErrors.signature}
                   </p>
                 )}
               </div>
 
-              {/* Date */}
               <div>
-                <label className="block text-[#691C33] font-medium mb-2 text-sm">
-                  Date:
+                <label className="block text-[#691C33] font-medium mb-2 text-xs md:text-sm">
+                  Date
                 </label>
                 <input
                   type="date"
                   value={signatureDate}
-                  onChange={(e) => setSignatureDate(e.target.value)}
-                  className={`w-full px-4 py-3 text-[#691C33] rounded-xl border ${
+                  readOnly
+                  className={`w-full px-4 py-3.5 text-[#691C33] rounded-xl border bg-gray-50 ${
                     formErrors.signatureDate
                       ? "border-red-500"
-                      : "border-[#691C33]/30"
-                  } focus:border-[#691C33] focus:ring-2 focus:ring-[#691C33]/20 outline-none transition-all text-sm md:text-base`}
-                  readOnly
+                      : "border-[#691C33]/25"
+                  }`}
                 />
-                <p className="text-[#691C33]/60 text-xs mt-1">
-                  Today's date is automatically set
-                </p>
-                {formErrors.signatureDate && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formErrors.signatureDate}
-                  </p>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Final Confirmation */}
-          <div className="bg-gradient-to-r from-[#691C33]/5 to-[#691C33]/10 border border-[#691C33]/20 rounded-xl p-4">
+          <div className="bg-[#691C33]/5 border border-[#691C33]/20 rounded-2xl p-4">
             <div className="flex items-start gap-3">
               <Shield className="w-6 h-6 text-[#691C33] flex-shrink-0" />
               <div>
-                <h4 className="text-[#691C33] font-bold mb-2">
+                <h4 className="text-[#691C33] font-bold mb-2 text-sm md:text-base">
                   Important Notice
                 </h4>
-                <p className="text-[#691C33] text-sm">
-                  By submitting this enrollment form, you acknowledge that:
-                </p>
-                <ul className="text-[#691C33] text-sm mt-2 space-y-1 list-disc list-inside">
+                <ul className="text-[#691C33] text-xs md:text-sm space-y-1 list-disc list-inside">
                   <li>
-                    You have paid the full amount of{" "}
-                    <strong>{formatCurrency(calculateTotal())}</strong>
+                    You are paying{" "}
+                    <strong>{formatCurrency(calculateTotal())}</strong> for your
+                    selected program
                   </li>
-                  <li>₦20,000 registration fee is non-refundable</li>
+                  {isOneDay && formData.oneDayDay && formData.oneDaySlot && (
+                    <li>
+                      Your 1-Day class is on{" "}
+                      <strong>{formData.oneDayDay}</strong> at{" "}
+                      <strong>{getOneDaySlotLabel()}</strong> (2 hours)
+                    </li>
+                  )}
+                  <li>Registration is free</li>
                   <li>
                     Your enrollment will be confirmed after payment verification
                   </li>
@@ -1416,7 +1497,6 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1425,16 +1505,14 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
           />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           >
-            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white rounded-2xl md:rounded-3xl shadow-2xl flex flex-col">
-              {/* Pattern Background */}
+            <div className="relative w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-hidden bg-white rounded-t-3xl sm:rounded-2xl md:rounded-3xl shadow-2xl flex flex-col">
               <div
                 className="absolute inset-0 opacity-5 pointer-events-none"
                 style={{
@@ -1445,11 +1523,10 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 }}
               />
 
-              {/* Header */}
-              <div className="relative bg-[#691C33] p-4 md:p-6 border-b border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 md:w-12 md:h-12">
+              <div className="relative bg-[#691C33] px-4 py-4 md:px-6 md:py-5 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0">
                       <Image
                         src="/logo-white.png"
                         alt="The House of Tutu Logo"
@@ -1457,34 +1534,36 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                         className="object-contain"
                       />
                     </div>
-                    <div>
-                      <h2 className="text-white text-lg md:text-xl font-bold">
+                    <div className="min-w-0">
+                      <h2 className="text-white text-base md:text-xl font-bold truncate">
                         THE HOUSE OF TUTU
                       </h2>
-                      <p className="text-white/80 text-sm">Perfumery Academy</p>
+                      <p className="text-white/80 text-xs md:text-sm truncate">
+                        Perfumery Academy
+                      </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={onClose}
                     disabled={isSubmitting}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                    className="p-2.5 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50 flex-shrink-0"
+                    aria-label="Close"
                   >
-                    <X className="w-6 h-6 text-white" />
+                    <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </button>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white/80 text-sm">
-                      Step {currentStep} of {totalSteps}
+                <div>
+                  <div className="flex justify-between items-center mb-2 gap-2">
+                    <span className="text-white/80 text-xs md:text-sm whitespace-nowrap">
+                      Step {currentStep} / {totalSteps}
                     </span>
-                    <span className="text-white font-medium">
+                    <span className="text-white font-medium text-xs md:text-sm truncate text-right">
                       {steps[currentStep - 1].title}
                     </span>
                   </div>
-                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div className="h-1.5 md:h-2 bg-white/20 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{
@@ -1496,11 +1575,10 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 </div>
               </div>
 
-              {/* Form Content */}
               <div className="flex-1 overflow-y-auto p-4 md:p-6 form-content">
-                <div className="mb-8">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-[#691C33]/10 flex items-center justify-center">
+                <div className="mb-6 md:mb-8">
+                  <div className="flex items-center gap-3 mb-5 md:mb-6">
+                    <div className="w-10 h-10 rounded-full bg-[#691C33]/10 flex items-center justify-center flex-shrink-0">
                       {(() => {
                         const IconComponent = steps[currentStep - 1].icon;
                         return (
@@ -1508,37 +1586,36 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                         );
                       })()}
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold text-[#691C33]">
+                    <h3 className="text-lg md:text-2xl font-bold text-[#691C33]">
                       {steps[currentStep - 1].title}
                     </h3>
                   </div>
                   {CurrentStepComponent}
                 </div>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between pt-6 border-t border-[#691C33]/10">
+                <div className="flex justify-between gap-3 pt-5 md:pt-6 border-t border-[#691C33]/10">
                   {currentStep > 1 ? (
                     <button
                       type="button"
                       onClick={handleBack}
                       disabled={isSubmitting}
-                      className="px-6 py-3 text-[#691C33] font-medium border-2 border-[#691C33] rounded-xl hover:bg-[#691C33]/5 transition-colors disabled:opacity-50"
+                      className="flex-1 sm:flex-initial px-5 py-3.5 text-[#691C33] font-medium border-2 border-[#691C33] rounded-xl hover:bg-[#691C33]/5 transition-colors disabled:opacity-50 text-sm md:text-base"
                     >
                       Back
                     </button>
                   ) : (
-                    <div></div>
+                    <div className="hidden sm:block"></div>
                   )}
 
                   <button
                     type="button"
                     onClick={handleContinue}
                     disabled={isSubmitting}
-                    className={`px-8 py-3 font-medium rounded-xl flex items-center justify-center gap-3 min-w-[180px] ${
+                    className={`flex-1 sm:flex-initial sm:min-w-[180px] px-6 py-3.5 font-medium rounded-xl flex items-center justify-center gap-2 transition-colors text-sm md:text-base ${
                       !isSubmitting
-                        ? "bg-[#691C33] text-white hover:bg-[#691C33]/90"
+                        ? "bg-[#691C33] text-white hover:bg-[#691C33]/90 active:scale-[0.98]"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    } transition-colors`}
+                    }`}
                   >
                     {isSubmitting ? (
                       <>
@@ -1553,13 +1630,13 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                     ) : currentStep === totalSteps ? (
                       <>
                         <GraduationCap className="w-5 h-5" />
-                        <span>Submit Enrollment</span>
+                        <span>Submit</span>
                       </>
                     ) : (
                       <>
                         <span>Continue</span>
                         <svg
-                          className="w-5 h-5"
+                          className="w-4 h-4 md:w-5 md:h-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1577,26 +1654,37 @@ const EnrollmentFormModal = ({ isOpen, onClose }: EnrollmentFormModalProps) => {
                 </div>
               </div>
 
-              {/* Footer */}
-              <div className="relative bg-[#691C33]/5 p-4 border-t border-[#691C33]/10">
-                <div className="grid grid-cols-4 gap-4 text-center">
+              <div className="relative bg-[#691C33]/5 px-4 py-3 md:p-4 border-t border-[#691C33]/10 flex-shrink-0">
+                <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
                   <div>
-                    <div className="text-lg font-bold text-[#691C33]">₦20K</div>
-                    <div className="text-[#691C33]/70 text-xs">Reg Fee</div>
+                    <div className="text-xs md:text-sm font-bold text-[#691C33]">
+                      FREE
+                    </div>
+                    <div className="text-[10px] md:text-xs text-[#691C33]/70">
+                      Registration
+                    </div>
+                  </div>
+                  <div className="border-x border-[#691C33]/15">
+                    <div className="text-xs md:text-sm font-bold text-[#691C33] truncate">
+                      {isOneDay && formData.oneDayDay
+                        ? formData.oneDayDay.slice(0, 3)
+                        : "100%"}
+                    </div>
+                    <div className="text-[10px] md:text-xs text-[#691C33]/70">
+                      {isOneDay && formData.oneDaySlot
+                        ? ONE_DAY_SLOTS.find(
+                            (s) => s.id === formData.oneDaySlot,
+                          )?.short
+                        : "Practical"}
+                    </div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-[#691C33]">100%</div>
-                    <div className="text-[#691C33]/70 text-xs">Practical</div>
-                  </div>
-                  <div className="border-x border-[#691C33]/20">
-                    <div className="text-lg font-bold text-[#691C33]">24/7</div>
-                    <div className="text-[#691C33]/70 text-xs">Support</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-[#691C33]">
+                    <div className="text-xs md:text-sm font-bold text-[#691C33] truncate">
                       {formatCurrency(calculateTotal())}
                     </div>
-                    <div className="text-[#691C33]/70 text-xs">Total</div>
+                    <div className="text-[10px] md:text-xs text-[#691C33]/70">
+                      Total
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 // components/Sections/Curriculum.tsx
 "use client";
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { gothamOffice, italiana } from "@/app/utils/constants";
 import {
   CheckCircle,
@@ -9,370 +9,604 @@ import {
   Target,
   BarChart,
   Package,
-  Rocket,
   Globe,
   Award,
   Users,
   Clock,
   Mail,
-  Sparkles,
+  Briefcase,
+  FlaskRound,
+  GraduationCap,
+  Lock,
+  Layers,
 } from "lucide-react";
 
+type Track = "art" | "commercial";
+
 const Curriculum = () => {
+  const [activeTrack, setActiveTrack] = useState<Track>("art");
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
-  const modules = [
+  // ─── Art of Perfumery Programs ──────────────────────────
+  const artPrograms = [
     {
-      title: "Understanding Fragrance Oil Grades",
-      description: "Master A, B, C grades, diffuser, and burning oils",
+      label: "6 Weeks",
+      badge: "Popular",
+      price: "₦600,000",
+      original: "₦750,000",
+      discount: "20% OFF",
+      desc: "Beginner Perfumery Program",
+      highlight: true,
+      status: "available" as const,
+    },
+    {
+      label: "12 Weeks",
+      badge: "Pro",
+      price: "₦800,000",
+      original: null,
+      discount: null,
+      desc: "Intermediate & Advanced",
+      highlight: false,
+      status: "available" as const,
+    },
+    {
+      label: "Mastery",
+      badge: "Invitation",
+      price: "Coming Soon",
+      original: null,
+      discount: null,
+      desc: "Master Perfumer Track",
+      highlight: false,
+      status: "coming_soon" as const,
+    },
+  ];
+
+  // ─── Commercial Perfumery Program ───────────────────────
+  const commercialPrograms = [
+    {
+      label: "2 Weeks",
+      badge: "Business Track",
+      price: "₦350,000",
+      original: null,
+      discount: null,
+      desc: "Commercial Perfumery Masterclass",
+      highlight: true,
+      status: "available" as const,
+    },
+  ];
+
+  // ─── Modules per Track ──────────────────────────────────
+  const artModules = [
+    {
+      title: "Foundations of Perfumery",
+      description:
+        "What perfumery is, how the nose works, and the fragrance pyramid",
       icon: BookOpen,
     },
     {
-      title: "Top, Middle & Base Notes",
-      description: "Simplified explanation of fragrance composition",
+      title: "Fragrance Families & History",
+      description: "The 8 families and Africa's role in the story of scent",
       icon: Target,
     },
     {
-      title: "Product Development",
-      description: "From concept to finished fragrance product",
+      title: "Raw Materials & Extraction",
+      description: "Natural vs synthetic, plus the 5 extraction methods",
       icon: Package,
     },
     {
-      title: "Branding & Packaging",
-      description: "Create luxury brand identity and packaging",
-      icon: Rocket,
+      title: "The Art of Blending",
+      description: "Accords, the Rule of Three, and building your first blend",
+      icon: FlaskRound,
     },
     {
-      title: "Supplier Sourcing",
-      description: "Local and international supplier networks",
+      title: "Formulation & Safety",
+      description: "Percentages, concentrations, IFRA, and patch testing",
+      icon: BarChart,
+    },
+    {
+      title: "Launch & Certification",
+      description: "Maceration, basic pricing, and a Mini Showcase",
+      icon: Award,
+    },
+  ];
+
+  const commercialModules = [
+    {
+      title: "Business Models",
+      description:
+        "The 4 paths available to a perfumer — from home studio to export",
+      icon: Briefcase,
+    },
+    {
+      title: "Brand Identity",
+      description: "Naming, storytelling, and visual packaging that sells",
+      icon: Package,
+    },
+    {
+      title: "Pricing Strategy",
+      description: "Cost × Markup — pricing your product for real profit",
+      icon: BarChart,
+    },
+    {
+      title: "Digital Marketing",
+      description: "Content, ads, and selling fragrance online",
       icon: Globe,
     },
     {
-      title: "Pricing & Profit",
-      description: "Costing strategies and profit calculation",
-      icon: BarChart,
+      title: "Retail & Wholesale",
+      description: "Selling to stores, hotels, and corporate clients",
+      icon: Users,
+    },
+    {
+      title: "First Commercial Batch",
+      description: "Production, packaging, and your public launch",
+      icon: Award,
     },
   ];
+
+  const modules = activeTrack === "art" ? artModules : commercialModules;
+  const programs = activeTrack === "art" ? artPrograms : commercialPrograms;
 
   return (
     <section
       id="curriculum"
-      className="py-16 md:py-24 relative overflow-hidden"
+      className="relative overflow-hidden py-14 md:py-24"
+      style={{ backgroundColor: "#ffffff" }}
     >
-      {/* Background Pattern - Subtle */}
-      <div className="absolute inset-0 bg-white"></div>
-      <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.05]"></div>
+      {/* Section pattern */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url('/pattern.png')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.04,
+          zIndex: 0,
+        }}
+      />
 
-      <div className="container relative z-10 mx-auto px-4 sm:px-6">
-        {/* Header - Static without hover */}
+      <div className="relative z-10 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12 md:mb-16"
+          className="text-center mb-8 md:mb-12"
         >
-          <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 md:py-3 rounded-full mb-4">
-            <div className="w-2 h-2 bg-[#691C33] rounded-full"></div>
+          <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 rounded-full mb-4">
+            <div className="w-2 h-2 bg-[#691C33] rounded-full" />
             <span
               className={`text-[#691C33] font-semibold tracking-wider text-xs md:text-sm ${gothamOffice.className}`}
             >
               CURRICULUM OVERVIEW
             </span>
           </div>
+
           <h2
-            className={`text-3xl md:text-4xl lg:text-5xl font-black text-[#691C33] mt-2 mb-4 leading-tight ${italiana.className}`}
+            className={`text-3xl md:text-4xl lg:text-5xl font-black text-[#691C33] mb-4 leading-tight ${italiana.className}`}
           >
             What You Will Learn
           </h2>
+
           <p
-            className={`text-[#691C33]/80 text-base md:text-lg max-w-2xl mx-auto ${gothamOffice.className} leading-relaxed`}
+            className={`text-[#691C33] text-base md:text-lg max-w-2xl mx-auto ${gothamOffice.className} leading-relaxed`}
           >
-            A comprehensive curriculum designed to transform you into a
-            professional fragrance entrepreneur
+            A comprehensive curriculum across two tracks — the{" "}
+            <strong className="font-bold">Art of Perfumery</strong> for
+            mastering the craft and{" "}
+            <strong className="font-bold">Commercial Perfumery</strong> for
+            building a business.
           </p>
         </motion.div>
 
-        {/* Modules Grid with Hover Animation */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-          {modules.map((module, index) => (
-            <div
-              key={module.title}
-              className="relative group"
-              onMouseEnter={() => setHoveredCard(index)}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              {/* Card Container with Conditional Background */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className={`relative rounded-xl md:rounded-2xl p-5 md:p-6 border shadow-sm transition-all duration-300 h-full overflow-hidden ${
-                  hoveredCard === index
-                    ? "bg-[#691C33] border-transparent"
-                    : "bg-white border-[#691C33]/10"
-                }`}
-              >
-                {/* Pattern Overlay - Only shows on hover */}
-                <div
-                  className={`absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-300 ${
-                    hoveredCard === index ? "opacity-20" : "opacity-0"
-                  }`}
-                  style={{ filter: "brightness(0) invert(1)" }}
-                ></div>
-
-                {/* Module Icon */}
-                <div
-                  className={`w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 relative z-10 ${
-                    hoveredCard === index
-                      ? "bg-white"
-                      : index % 2 === 0
-                      ? "bg-[#691C33]"
-                      : "bg-white border-2 border-[#691C33]"
-                  }`}
-                >
-                  <module.icon
-                    className={`w-6 h-6 md:w-7 md:h-7 ${
-                      hoveredCard === index
-                        ? "text-[#691C33]"
-                        : index % 2 === 0
-                        ? "text-white"
-                        : "text-[#691C33]"
-                    }`}
-                  />
-                </div>
-
-                {/* Module Title */}
-                <h3
-                  className={`text-lg md:text-xl font-bold mb-2 md:mb-3 relative z-10 ${
-                    hoveredCard === index ? "text-white" : "text-[#691C33]"
-                  } ${gothamOffice.className}`}
-                >
-                  {module.title}
-                </h3>
-
-                {/* Module Description */}
-                <p
-                  className={`text-sm md:text-base mb-4 md:mb-6 relative z-10 ${
-                    hoveredCard === index
-                      ? "text-white/90"
-                      : "text-[#691C33]/70"
-                  }`}
-                >
-                  {module.description}
-                </p>
-
-                {/* Included Badge */}
-                <div
-                  className={`flex items-center gap-2 relative z-10 ${
-                    hoveredCard === index ? "text-white" : "text-[#691C33]"
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="font-medium text-sm md:text-base">
-                    Included
-                  </span>
-                </div>
-
-                {/* Hover Sparkle Effect */}
-                {hoveredCard === index && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute top-4 right-4"
-                  >
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </motion.div>
-                )}
-              </motion.div>
-            </div>
-          ))}
-        </div>
-
-        {/* Included Features */}
+        {/* Track Selector */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-12 md:mt-20 bg-white rounded-xl md:rounded-3xl p-6 md:p-8 lg:p-12 border border-[#691C33]/10 shadow-xl relative overflow-hidden"
+          className="grid grid-cols-2 gap-3 md:gap-4 mb-10 md:mb-14 max-w-2xl mx-auto"
         >
-          {/* Pattern Background for Features */}
-          <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.05]"></div>
-
-          {/* Content */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6 md:mb-8">
-              <div className="w-2 h-6 md:h-8 bg-[#691C33] rounded-full"></div>
-              <h3
-                className={`text-xl md:text-2xl lg:text-3xl font-bold text-[#691C33] ${italiana.className}`}
+          <button
+            onClick={() => setActiveTrack("art")}
+            className={`rounded-2xl p-4 md:p-5 border-2 transition-all flex flex-col md:flex-row items-center gap-2 md:gap-3 ${
+              activeTrack === "art"
+                ? "bg-[#691C33] text-white border-[#691C33] shadow-lg"
+                : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33]/60"
+            }`}
+          >
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                activeTrack === "art" ? "bg-white/15" : "bg-[#691C33]/10"
+              }`}
+            >
+              <FlaskRound
+                className={`w-5 h-5 ${
+                  activeTrack === "art" ? "text-white" : "text-[#691C33]"
+                }`}
+              />
+            </div>
+            <div className="text-center md:text-left">
+              <div
+                className={`text-[10px] uppercase tracking-wider font-bold ${
+                  activeTrack === "art" ? "text-white/70" : "text-[#691C33]/60"
+                }`}
               >
-                What's Included in Your Journey
-              </h3>
-            </div>
-
-            {/* Features Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {[
-                {
-                  text: "Student Handbook & Workbook",
-                  icon: BookOpen,
-                },
-                {
-                  text: "Academy Calendar & Assignments",
-                  icon: Clock,
-                },
-                {
-                  text: "Certificate of Completion",
-                  icon: Award,
-                },
-                {
-                  text: "Direct Instructor Support",
-                  icon: Users,
-                },
-                {
-                  text: "WhatsApp Class Group",
-                  icon: Mail,
-                },
-                {
-                  text: "Supplier Contact List",
-                  icon: Globe,
-                },
-                {
-                  text: "Branding Templates",
-                  icon: Package,
-                },
-                {
-                  text: "Final Real-World Project",
-                  icon: Rocket,
-                },
-              ].map((item, index) => (
-                <motion.div
-                  key={item.text}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.02 }}
-                  className="flex items-center gap-3 bg-[#691C33]/5 rounded-lg p-3 md:p-4 hover:bg-[#691C33]/10 transition-all duration-300 cursor-pointer group"
-                >
-                  <motion.div
-                    whileHover={{ rotate: 10 }}
-                    className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#691C33] flex items-center justify-center flex-shrink-0 group-hover:bg-[#8B2846] transition-colors duration-300"
-                  >
-                    <item.icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  </motion.div>
-                  <span className="text-[#691C33] text-sm md:text-base font-medium group-hover:text-[#8B2846] transition-colors duration-300">
-                    {item.text}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Course Info Cards */}
-            <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-[#691C33]/20">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-                {[
-                  {
-                    title: "Course Duration",
-                    value: "2 Weeks",
-                    icon: Clock,
-                    desc: "Intensive & Accelerated",
-                    highlight: true,
-                  },
-                  {
-                    title: "Format",
-                    value: "Hybrid",
-                    icon: Globe,
-                    desc: "Online & Practical Sessions",
-                  },
-                  {
-                    title: "Support",
-                    value: "Lifetime Access",
-                    icon: Users,
-                    desc: "Community & Resources",
-                  },
-                ].map((item) => (
-                  <motion.div
-                    key={item.title}
-                    whileHover={{ y: -5 }}
-                    className={`bg-white rounded-xl p-4 text-center border-2 ${
-                      item.highlight
-                        ? "border-[#691C33] shadow-lg"
-                        : "border-[#691C33]/20"
-                    } hover:shadow-xl transition-all duration-300`}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-[#691C33] flex items-center justify-center mx-auto mb-3">
-                      <item.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="text-2xl font-bold text-[#691C33] mb-1">
-                      {item.value}
-                    </div>
-                    <div className="font-medium text-[#691C33] text-sm">
-                      {item.title}
-                    </div>
-                    <div className="text-[#691C33]/70 text-xs mt-1">
-                      {item.desc}
-                    </div>
-                  </motion.div>
-                ))}
+                The Craft
+              </div>
+              <div className="text-sm md:text-base font-bold">
+                Art of Perfumery
               </div>
             </div>
+          </button>
 
-            {/* CTA Section */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 md:mt-12 text-center"
+          <button
+            onClick={() => setActiveTrack("commercial")}
+            className={`rounded-2xl p-4 md:p-5 border-2 transition-all flex flex-col md:flex-row items-center gap-2 md:gap-3 ${
+              activeTrack === "commercial"
+                ? "bg-[#691C33] text-white border-[#691C33] shadow-lg"
+                : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33]/60"
+            }`}
+          >
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                activeTrack === "commercial" ? "bg-white/15" : "bg-[#691C33]/10"
+              }`}
             >
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="inline-block relative"
+              <Briefcase
+                className={`w-5 h-5 ${
+                  activeTrack === "commercial" ? "text-white" : "text-[#691C33]"
+                }`}
+              />
+            </div>
+            <div className="text-center md:text-left">
+              <div
+                className={`text-[10px] uppercase tracking-wider font-bold ${
+                  activeTrack === "commercial"
+                    ? "text-white/70"
+                    : "text-[#691C33]/60"
+                }`}
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#691C33] to-[#8B2846] rounded-full blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => (window.location.href = "/enrollment")}
-                  className="relative bg-gradient-to-r from-[#691C33] to-[#8B2846] text-white px-8 py-3 md:py-4 rounded-full font-semibold text-base md:text-lg inline-flex items-center justify-center gap-3 shadow-2xl hover:shadow-3xl transition-all duration-300"
-                >
-                  <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
-                  <span>VIEW FULL CURRICULUM</span>
-                  <Sparkles className="w-5 h-5 md:w-6 md:h-6" />
-                </motion.button>
-              </motion.div>
-              <p className="text-[#691C33]/70 text-sm md:text-base mt-4">
-                Limited spots available for our next cohort
+                The Business
+              </div>
+              <div className="text-sm md:text-base font-bold">
+                Commercial Perfumery
+              </div>
+            </div>
+          </button>
+        </motion.div>
+
+        {/* Program Options */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTrack}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="mb-12 md:mb-16"
+          >
+            <div className="text-center mb-6">
+              <h3
+                className={`text-lg md:text-2xl font-bold text-[#691C33] mb-1 ${gothamOffice.className}`}
+              >
+                {activeTrack === "art"
+                  ? "Choose Your Level"
+                  : "The 2-Week Masterclass"}
+              </h3>
+              <p className="text-[#691C33] text-sm md:text-base">
+                Registration is <span className="font-bold">FREE</span> — pay
+                only your course fee
               </p>
-            </motion.div>
+            </div>
+
+            <div
+              className={`grid gap-4 mx-auto ${
+                activeTrack === "art"
+                  ? "grid-cols-1 sm:grid-cols-3 max-w-4xl"
+                  : "grid-cols-1 max-w-md"
+              }`}
+            >
+              {programs.map((program) => {
+                const isComingSoon = program.status === "coming_soon";
+                return (
+                  <div
+                    key={program.label}
+                    className={`rounded-2xl p-5 text-center border-2 transition-all ${
+                      program.highlight
+                        ? "bg-[#691C33] text-white border-[#691C33] shadow-xl"
+                        : "bg-white border-[#691C33]/20"
+                    }`}
+                  >
+                    <div
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full mb-3 ${
+                        program.highlight
+                          ? "bg-white text-[#691C33]"
+                          : "bg-[#691C33]/10 text-[#691C33]"
+                      }`}
+                    >
+                      {isComingSoon && <Lock className="w-3 h-3" />}
+                      {program.badge}
+                    </div>
+
+                    <div
+                      className={`font-bold text-lg md:text-xl mb-2 ${
+                        program.highlight ? "text-white" : "text-[#691C33]"
+                      }`}
+                    >
+                      {program.label}
+                    </div>
+
+                    <div
+                      className={`text-xl md:text-2xl font-bold mb-1 ${
+                        program.highlight ? "text-white" : "text-[#691C33]"
+                      }`}
+                    >
+                      {program.price}
+                    </div>
+
+                    {program.original && (
+                      <div
+                        className={`text-xs md:text-sm line-through mb-1 ${
+                          program.highlight
+                            ? "text-white/60"
+                            : "text-[#691C33]/50"
+                        }`}
+                      >
+                        {program.original}
+                      </div>
+                    )}
+
+                    {program.discount && (
+                      <div
+                        className={`text-[10px] font-bold mb-2 ${
+                          program.highlight ? "text-white" : "text-[#691C33]"
+                        }`}
+                      >
+                        {program.discount}
+                      </div>
+                    )}
+
+                    <div
+                      className={`text-xs md:text-sm mt-2 leading-snug ${
+                        program.highlight
+                          ? "text-white/85"
+                          : "text-[#691C33]/80"
+                      }`}
+                    >
+                      {program.desc}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Modules Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12 md:mb-16"
+        >
+          <div className="text-center mb-6 md:mb-8">
+            <h3
+              className={`text-lg md:text-2xl font-bold text-[#691C33] mb-1 ${gothamOffice.className}`}
+            >
+              {activeTrack === "art"
+                ? "Core Modules — Art of Perfumery"
+                : "Core Modules — Commercial Perfumery"}
+            </h3>
+            <p className="text-[#691C33] text-sm md:text-base">
+              {activeTrack === "art"
+                ? "Everything you'll cover across 6 and 12 weeks"
+                : "Everything you'll cover in 2 weeks"}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {modules.map((module, index) => {
+              const Icon = module.icon;
+              const isHovered = hoveredCard === index;
+              return (
+                <div
+                  key={module.title}
+                  onMouseEnter={() => setHoveredCard(index)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.06 }}
+                    className={`relative rounded-2xl p-5 md:p-6 border-2 h-full transition-all ${
+                      isHovered
+                        ? "bg-[#691C33] border-[#691C33] shadow-lg"
+                        : "bg-white border-[#691C33]/12 hover:border-[#691C33]/40"
+                    }`}
+                  >
+                    {/* Icon */}
+                    <div
+                      className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center mb-4 transition-colors ${
+                        isHovered ? "bg-white/15" : "bg-[#691C33]"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 md:w-7 md:h-7 ${
+                          isHovered ? "text-white" : "text-white"
+                        }`}
+                      />
+                    </div>
+
+                    <h3
+                      className={`text-base md:text-lg font-bold mb-2 leading-snug ${
+                        isHovered ? "text-white" : "text-[#691C33]"
+                      } ${gothamOffice.className}`}
+                    >
+                      {module.title}
+                    </h3>
+
+                    <p
+                      className={`text-sm md:text-base leading-relaxed mb-4 ${
+                        isHovered ? "text-white/90" : "text-[#691C33]"
+                      }`}
+                    >
+                      {module.description}
+                    </p>
+
+                    <div
+                      className={`flex items-center gap-2 ${
+                        isHovered ? "text-white" : "text-[#691C33]"
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="font-medium text-xs md:text-sm">
+                        Included
+                      </span>
+                    </div>
+                  </motion.div>
+                </div>
+              );
+            })}
           </div>
         </motion.div>
 
-        {/* Mobile Stats - Enhanced */}
-        <div className="mt-8 md:hidden bg-gradient-to-r from-[#691C33] to-[#8B2846] text-white rounded-xl p-5 shadow-lg">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              className="bg-white/10 rounded-lg p-3"
-            >
-              <div className="text-2xl font-bold mb-1">2</div>
-              <div className="text-white/90 text-xs">Weeks</div>
-            </motion.div>
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              className="bg-white/10 rounded-lg p-3 border-x border-white/20"
-            >
-              <div className="text-2xl font-bold mb-1">100%</div>
-              <div className="text-white/90 text-xs">Practical</div>
-            </motion.div>
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              className="bg-white/10 rounded-lg p-3"
-            >
-              <div className="text-2xl font-bold mb-1">24/7</div>
-              <div className="text-white/90 text-xs">Support</div>
-            </motion.div>
+        {/* Included Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-10 md:mb-14"
+        >
+          <div className="bg-[#691C33] rounded-2xl md:rounded-3xl p-6 md:p-10">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                <Award className="w-5 h-5 md:w-6 md:h-6 text-white" />
+              </div>
+              <h3
+                className={`text-lg md:text-2xl lg:text-3xl font-bold text-white ${italiana.className}`}
+              >
+                What's Included
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {[
+                { text: "Student Handbook", icon: BookOpen },
+                { text: "Class Calendar", icon: Clock },
+                { text: "Certificate", icon: Award },
+                { text: "Instructor Support", icon: Users },
+                { text: "WhatsApp Group", icon: Mail },
+                { text: "Supplier Contacts", icon: Globe },
+                { text: "Branding Templates", icon: Package },
+                { text: "Capstone Project", icon: Layers },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.text}
+                    className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3 md:p-4 hover:bg-white/15 transition-colors"
+                  >
+                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <span className="text-white text-xs md:text-sm font-medium leading-snug">
+                      {item.text}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Info row */}
+            <div className="mt-8 pt-6 md:pt-8 border-t border-white/20 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-white font-bold text-sm md:text-base">
+                    Flexible Duration
+                  </div>
+                  <div className="text-white/75 text-xs md:text-sm">
+                    6, 12 weeks, or 2 weeks
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Globe className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-white font-bold text-sm md:text-base">
+                    In-Person Format
+                  </div>
+                  <div className="text-white/75 text-xs md:text-sm">
+                    Hands-on training in Abuja
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-white font-bold text-sm md:text-base">
+                    Lifetime Access
+                  </div>
+                  <div className="text-white/75 text-xs md:text-sm">
+                    Community & resources
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center"
+        >
+          <button
+            onClick={() => (window.location.href = "/enrollment")}
+            className="bg-[#691C33] text-white px-6 py-3.5 md:px-8 md:py-4 rounded-full font-semibold text-sm md:text-base inline-flex items-center justify-center gap-2 hover:bg-[#691C33]/90 transition-colors shadow-md"
+          >
+            <BookOpen className="w-4 h-4 md:w-5 md:h-5" />
+            <span>ENROLL NOW</span>
+          </button>
+          <p className="text-[#691C33] text-xs md:text-sm mt-3">
+            Limited spots available for the next cohort
+          </p>
+        </motion.div>
+
+        {/* Mobile quick stats */}
+        <div className="mt-8 md:hidden bg-[#691C33] text-white rounded-2xl p-4">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-white/10 rounded-xl p-3">
+              <div className="text-lg font-bold mb-0.5">
+                {activeTrack === "art" ? "3" : "1"}
+              </div>
+              <div className="text-white/85 text-[10px] leading-tight">
+                {activeTrack === "art" ? "Levels" : "Program"}
+              </div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-3 border-x border-white/15">
+              <div className="text-lg font-bold mb-0.5">100%</div>
+              <div className="text-white/85 text-[10px] leading-tight">
+                Practical
+              </div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-3">
+              <div className="text-lg font-bold mb-0.5">FREE</div>
+              <div className="text-white/85 text-[10px] leading-tight">
+                Registration
+              </div>
+            </div>
           </div>
         </div>
       </div>

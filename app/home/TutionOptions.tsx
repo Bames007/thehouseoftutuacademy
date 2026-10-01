@@ -1,17 +1,14 @@
+// components/Sections/TuitionOptions.tsx
 "use client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { gothamOffice, italiana } from "@/app/utils/constants";
 import {
   CheckCircle,
-  Zap,
   Clock,
   Users,
   Award,
-  Sparkles,
   Shield,
-  Gift,
   BookOpen,
-  Palette,
   FlaskRound,
   Briefcase,
   Lock,
@@ -19,172 +16,140 @@ import {
   Play,
   X,
   Maximize2,
+  Minimize2,
   Volume2,
   VolumeX,
+  Pause,
+  GraduationCap,
+  Layers,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 
+type Track = "art" | "commercial";
+
 const TuitionOptions = () => {
-  const [selectedOption, setSelectedOption] = useState<"commercial" | "art">(
-    "commercial"
-  );
+  const [activeTrack, setActiveTrack] = useState<Track>("art");
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<{
+    title: string;
+    src: string;
+    poster: string;
+  } | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  const commercialCourse = {
-    title: "Commercial Masterclass",
-    price: "₦500,000",
-    duration: "2 Weeks Intensive",
-    description:
-      "Transform your perfumery skills into a profitable business with branding, marketing, and sales strategies.",
-    status: "available",
-    features: [
-      "Complete Business Blueprint",
-      "Brand Development Mastery",
-      "Pricing & Profit Margins",
-      "Marketing & Sales Strategies",
-      "Supplier Sourcing Secrets",
-      "Legal & Regulatory Compliance",
-      "Packaging & Branding Design",
-      "Digital Marketing Strategy",
-    ],
-    included: [
-      "Student Handbook & Workbook",
-      "Academy Calendar & Schedule",
-      "Assignments & Final Project",
-      "Certificate of Completion",
-      "WhatsApp Support Group",
-      "Industry Templates & Tools",
-      "Supplier Directory (Local & Intl)",
-      "Lifetime Alumni Network Access",
-      "Branding & Packaging Templates",
-      "Pricing Calculator Tool",
-      "Launch Strategy Blueprint",
-      "Ongoing Business Support",
-    ],
-    levels: [
-      {
-        title: "Business Foundation",
-        duration: "Week 1",
-        description: "Build your business structure and strategy",
-        features: ["Business Model", "Legal Setup", "Brand Identity"],
-        video: "/video/commercial.mp4",
-        thumbnail: "/commercial.jpeg",
-      },
-      {
-        title: "Operations & Production",
-        duration: "Week 2",
-        description: "Master production and quality control",
-        features: ["Production Setup", "Quality Control", "Packaging Design"],
-        video: "/video/commercial.mp4",
-        thumbnail: "/commercial.jpeg",
-      },
-      {
-        title: "Marketing & Sales",
-        duration: "Week 2",
-        description: "Learn marketing strategies and sales techniques",
-        features: ["Digital Marketing", "Sales Funnel", "Customer Retention"],
-        video: "/video/commercial.mp4",
-        thumbnail: "/commercial.jpeg",
-      },
-      {
-        title: "Growth & Scaling",
-        duration: "Week 2",
-        description: "Scale your business and explore new markets",
-        features: ["Business Scaling", "Market Expansion", "Team Building"],
-        video: "/video/commercial.mp4",
-        thumbnail: "/commercial.jpeg",
-      },
-    ],
+  // ─── ART OF PERFUMERY PROGRAMS ─────────────────────────
+  const artPrograms = [
+    {
+      level: "6 Weeks",
+      title: "Beginner Perfumery Program",
+      duration: "6 Weeks · 1 class per week",
+      price: "₦600,000",
+      originalPrice: "₦750,000",
+      discount: "20% OFF",
+      badge: "Popular",
+      description:
+        "A complete introduction to perfumery. Builds from first principles to a finished scent you make, name, and present yourself.",
+      icon: BookOpen,
+      status: "available" as const,
+      video: "/video/preview-video-one.mp4",
+      thumbnail: "/preview-image-one.jpeg",
+      features: [
+        "Discovering Your Nose",
+        "Fragrance Families & History",
+        "Raw Materials & Extraction",
+        "The Art of Blending",
+        "Formulation, Measuring & Safety",
+        "Mini Showcase & Certificate",
+      ],
+    },
+    {
+      level: "12 Weeks",
+      title: "Intermediate & Advanced Program",
+      duration: "12 Weeks · 1 class per week",
+      price: "₦800,000",
+      originalPrice: null,
+      discount: null,
+      badge: "Pro Track",
+      description:
+        "Our full artistic program. Twelve weeks from foundations to a commercial-grade capstone — advanced formulation, safety standards, branding, and a recorded pitch.",
+      icon: GraduationCap,
+      status: "available" as const,
+      video: "/video/preview-video-two.mp4",
+      thumbnail: "/preview-image-two.jpeg",
+      features: [
+        "Advanced Accord Construction",
+        "Full Formula Development",
+        "IFRA Safety & Compliance",
+        "Perfumer's Lab Setup",
+        "Commercial Branding & Pricing",
+        "Scent Marketing & Capstone Pitch",
+      ],
+    },
+    {
+      level: "Mastery",
+      title: "Master Perfumer Program",
+      duration: "Coming Soon",
+      price: null,
+      originalPrice: null,
+      discount: null,
+      badge: "Invitation Only",
+      description:
+        "Our most advanced track. Reserved for graduates who want to specialise in advanced formulation, mentor others, and produce at commercial scale.",
+      icon: Award,
+      status: "coming_soon" as const,
+      video: "/video/commercial.mp4",
+      thumbnail: "/commercial.jpeg",
+      features: [
+        "Advanced Perfume Chemistry",
+        "Commercial-Scale Production",
+        "Export & International Standards",
+        "Teaching & Mentorship",
+      ],
+    },
+  ];
+
+  // ─── COMMERCIAL PERFUMERY PROGRAMS ─────────────────────
+  const commercialPrograms = [
+    {
+      level: "2 Weeks",
+      title: "Commercial Perfumery Masterclass",
+      duration: "2 Weeks · 1 class per week",
+      price: "₦500,000",
+      originalPrice: null,
+      discount: null,
+      badge: "Business Track",
+      description:
+        "Transform your perfumery skills into a profitable business. Learn branding, pricing, packaging, marketing, and how to actually sell what you make.",
+      icon: Briefcase,
+      status: "available" as const,
+      video: "/video/commercial.mp4",
+      thumbnail: "/commercial.jpeg",
+      features: [
+        "Building Your Perfume Brand",
+        "Cost × Markup Pricing Strategy",
+        "Packaging & Unboxing Experience",
+        "Digital Marketing for Fragrance",
+        "Where to Sell — Online, Retail, Export",
+        "Launching Your First Commercial Batch",
+      ],
+    },
+  ];
+
+  const currentPrograms =
+    activeTrack === "art" ? artPrograms : commercialPrograms;
+
+  // ─── Video Controls ─────────────────────────────────────
+  const openVideo = (title: string, src: string, poster: string) => {
+    setActiveVideo({ title, src, poster });
+    setShowVideoModal(true);
   };
 
-  const artSeries = {
-    title: "Art of Perfumery Series",
-    description:
-      "Complete artistic training in perfumery, from foundation to mastery.",
-    status: "coming_soon",
-    levels: [
-      {
-        level: "Level 1",
-        title: "Foundation of Scent",
-        duration: "4 Weeks",
-        price: "Coming Soon",
-        description:
-          "Introduction to fragrance theory, basic scent composition, and understanding essential perfume ingredients.",
-        features: [
-          "Fragrance Families & Notes",
-          "Basic Scent Blending",
-          "Essential Ingredients",
-          "Introduction to Equipment",
-          "Safety Protocols",
-        ],
-        icon: Palette,
-        status: "coming_soon",
-        video: "/video/preview-video-one.mp4",
-        thumbnail: "/preview-image-one.jpeg",
-      },
-      {
-        level: "Level 2",
-        title: "Advanced Composition",
-        duration: "6 Weeks",
-        price: "Coming Soon",
-        description:
-          "Master advanced scent structures, complex accords, and professional formulation techniques.",
-        features: [
-          "Advanced Accord Building",
-          "Complex Scent Structures",
-          "Professional Formulation",
-          "Aging & Maturation",
-          "Quality Control",
-        ],
-        icon: FlaskRound,
-        status: "coming_soon",
-        video: "/video/preview-video-two.mp4",
-        thumbnail: "/preview-image-two.jpeg",
-      },
-      {
-        level: "Level 3",
-        title: "Master Perfumer",
-        duration: "8 Weeks",
-        price: "Coming Soon",
-        description:
-          "Create signature scents, understand commercial formulation, and develop professional perfumery skills.",
-        features: [
-          "Signature Scent Creation",
-          "Commercial Formulation",
-          "Industry Standards",
-          "Professional Certification",
-          "Portfolio Development",
-        ],
-        icon: Award,
-        status: "coming_soon",
-        video: "/video/preview-video-three.mp4",
-        thumbnail: "/preview-image-three.jpeg",
-      },
-    ],
-    included: [
-      "Comprehensive Workbooks",
-      "Hands-on Projects",
-      "Professional Certificate",
-      "Industry Resources",
-      "Mentorship Sessions",
-      "Lifetime Access to Updates",
-      "Portfolio Development",
-      "Graduation Showcase",
-    ],
-  };
-
-  const handlePlayVideo = (videoSrc: string) => {
-    if (videoRef.current) {
-      videoRef.current.src = videoSrc;
-      setShowVideoModal(true);
-    }
-  };
-
-  const handleCloseModal = () => {
+  const closeVideo = () => {
     setShowVideoModal(false);
     setIsVideoPlaying(false);
     if (videoRef.current) {
@@ -194,717 +159,552 @@ const TuitionOptions = () => {
   };
 
   const toggleVideoPlay = () => {
-    if (videoRef.current) {
-      if (isVideoPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsVideoPlaying(!isVideoPlaying);
+    if (!videoRef.current) return;
+    if (isVideoPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(console.error);
     }
+    setIsVideoPlaying(!isVideoPlaying);
   };
 
   const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsVideoMuted(!isVideoMuted);
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setIsVideoMuted(!isVideoMuted);
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      videoContainerRef.current?.requestFullscreen().catch(console.error);
+    } else {
+      document.exitFullscreen().catch(console.error);
     }
   };
+
+  const handleVideoEnd = () => setIsVideoPlaying(false);
 
   useEffect(() => {
     if (showVideoModal && videoRef.current) {
       videoRef.current.play().catch(console.error);
       setIsVideoPlaying(true);
     }
+  }, [showVideoModal, activeVideo]);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  useEffect(() => {
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeVideo();
+    };
+    if (showVideoModal) {
+      document.addEventListener("keydown", onEsc);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("keydown", onEsc);
+      document.body.style.overflow = "auto";
+    };
   }, [showVideoModal]);
 
   return (
     <section
-      className="py-12 md:py-24 bg-white relative overflow-hidden"
       id="tuition"
+      className="relative overflow-hidden py-14 md:py-24"
+      style={{ backgroundColor: "#ffffff" }}
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-white"></div>
-      <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.03]"></div>
+      {/* Section-level pattern */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `url('/pattern.png')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.04,
+          zIndex: 0,
+        }}
+      />
 
-      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8 md:mb-16"
+          className="text-center mb-8 md:mb-12"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 rounded-full mb-4"
-          >
+          <div className="inline-flex items-center gap-2 bg-[#691C33]/5 px-4 py-2 rounded-full mb-4">
             <div className="w-2 h-2 rounded-full bg-[#691C33]" />
             <span
               className={`text-xs md:text-sm font-semibold text-[#691C33] tracking-wider ${gothamOffice.className}`}
             >
-              FLEXIBLE LEARNING PATHS
+              TUITION & PROGRAMS
             </span>
-          </motion.div>
+          </div>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#691C33] mb-4 md:mb-6 ${italiana.className}`}
+          <h2
+            className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#691C33] mb-4 leading-tight ${italiana.className}`}
           >
-            Choose Your Learning Journey
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className={`text-base md:text-xl text-[#691C33]/80 max-w-3xl mx-auto ${gothamOffice.className} font-light leading-relaxed`}
+            Choose Your Investment
+          </h2>
+
+          <p
+            className={`text-base md:text-lg text-[#691C33] max-w-3xl mx-auto ${gothamOffice.className} font-light leading-relaxed`}
           >
-            Start your fragrance journey with our available Commercial
-            Masterclass or prepare for the complete Art of Perfumery series.
-          </motion.p>
+            Two tracks, clear pricing, and{" "}
+            <strong className="font-bold">free registration</strong> on every
+            program. Pay only your course fee.
+          </p>
         </motion.div>
 
-        {/* Option Selection */}
-        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 max-w-2xl md:max-w-3xl mx-auto mb-6 md:mb-12">
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedOption("commercial")}
-            className={`flex-1 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all ${
-              selectedOption === "commercial"
-                ? "border-[#691C33] bg-[#691C33]/5 shadow-lg"
-                : "border-[#691C33]/20 bg-white hover:border-[#691C33]/40"
+        {/* Track Selector */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-2 gap-3 md:gap-4 mb-8 md:mb-12 max-w-2xl mx-auto"
+        >
+          <button
+            onClick={() => setActiveTrack("art")}
+            className={`rounded-2xl p-4 md:p-5 border-2 transition-all flex flex-col md:flex-row items-center gap-2 md:gap-3 ${
+              activeTrack === "art"
+                ? "bg-[#691C33] text-white border-[#691C33] shadow-lg"
+                : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33]/60"
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 md:gap-3">
-                <Briefcase
-                  className={`w-4 h-4 md:w-5 md:h-5 ${
-                    selectedOption === "commercial"
-                      ? "text-[#691C33]"
-                      : "text-[#691C33]/60"
-                  }`}
-                />
-                <h3
-                  className={`text-base md:text-xl font-bold ${
-                    selectedOption === "commercial"
-                      ? "text-[#691C33]"
-                      : "text-[#691C33]/70"
-                  }`}
-                >
-                  Commercial Masterclass
-                </h3>
-              </div>
-              {selectedOption === "commercial" && (
-                <div className="bg-[#691C33] text-white text-xs px-2 md:px-3 py-1 rounded-full">
-                  AVAILABLE
-                </div>
-              )}
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                activeTrack === "art" ? "bg-white/15" : "bg-[#691C33]/10"
+              }`}
+            >
+              <FlaskRound
+                className={`w-5 h-5 ${
+                  activeTrack === "art" ? "text-white" : "text-[#691C33]"
+                }`}
+              />
             </div>
-            <p className="text-[#691C33]/70 text-xs md:text-base text-left">
-              Business-focused training to launch your perfume brand
-            </p>
-          </motion.button>
+            <div className="text-center md:text-left">
+              <div
+                className={`text-[10px] uppercase tracking-wider font-bold ${
+                  activeTrack === "art" ? "text-white/70" : "text-[#691C33]/60"
+                }`}
+              >
+                The Craft
+              </div>
+              <div className="text-sm md:text-base font-bold">
+                Art of Perfumery
+              </div>
+            </div>
+          </button>
 
-          <motion.button
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedOption("art")}
-            className={`flex-1 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all ${
-              selectedOption === "art"
-                ? "border-[#691C33] bg-[#691C33]/5 shadow-lg"
-                : "border-[#691C33]/20 bg-white hover:border-[#691C33]/40"
+          <button
+            onClick={() => setActiveTrack("commercial")}
+            className={`rounded-2xl p-4 md:p-5 border-2 transition-all flex flex-col md:flex-row items-center gap-2 md:gap-3 ${
+              activeTrack === "commercial"
+                ? "bg-[#691C33] text-white border-[#691C33] shadow-lg"
+                : "bg-white text-[#691C33] border-[#691C33]/20 hover:border-[#691C33]/60"
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 md:gap-3">
-                <Palette
-                  className={`w-4 h-4 md:w-5 md:h-5 ${
-                    selectedOption === "art"
-                      ? "text-[#691C33]"
-                      : "text-[#691C33]/60"
-                  }`}
-                />
-                <h3
-                  className={`text-base md:text-xl font-bold ${
-                    selectedOption === "art"
-                      ? "text-[#691C33]"
-                      : "text-[#691C33]/70"
-                  }`}
-                >
-                  Art of Perfumery
-                </h3>
-              </div>
-              {selectedOption === "art" && (
-                <div className="bg-[#691C33]/20 text-[#691C33] text-xs px-2 md:px-3 py-1 rounded-full">
-                  COMING SOON
-                </div>
-              )}
+            <div
+              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                activeTrack === "commercial" ? "bg-white/15" : "bg-[#691C33]/10"
+              }`}
+            >
+              <Briefcase
+                className={`w-5 h-5 ${
+                  activeTrack === "commercial" ? "text-white" : "text-[#691C33]"
+                }`}
+              />
             </div>
-            <p className="text-[#691C33]/70 text-xs md:text-base text-left">
-              Complete artistic training in perfume creation
-            </p>
-          </motion.button>
-        </div>
+            <div className="text-center md:text-left">
+              <div
+                className={`text-[10px] uppercase tracking-wider font-bold ${
+                  activeTrack === "commercial"
+                    ? "text-white/70"
+                    : "text-[#691C33]/60"
+                }`}
+              >
+                The Business
+              </div>
+              <div className="text-sm md:text-base font-bold">
+                Commercial Perfumery
+              </div>
+            </div>
+          </button>
+        </motion.div>
 
-        {/* Main Content Area */}
-        {selectedOption === "commercial" ? (
+        {/* Program Cards */}
+        <AnimatePresence mode="wait">
           <motion.div
-            key="commercial"
+            key={activeTrack}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6 md:space-y-12"
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className={`grid gap-5 md:gap-6 mb-10 md:mb-14 ${
+              activeTrack === "art"
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : "grid-cols-1 max-w-2xl mx-auto"
+            }`}
           >
-            {/* Commercial Course Details */}
-            <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
-              {/* Course Summary */}
-              <div className="bg-white rounded-xl md:rounded-3xl p-4 md:p-8 border border-[#691C33]/10 shadow-lg relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/pattern.png')] bg-cover bg-center bg-no-repeat opacity-[0.03]"></div>
+            {currentPrograms.map((program, index) => {
+              const Icon = program.icon;
+              const isLocked = program.status === "coming_soon";
 
-                <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 md:mb-8 gap-3 md:gap-4 relative z-10">
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-2 md:mb-3">
-                      <div className="w-2 h-2 rounded-full bg-[#691C33]"></div>
-                      <span className="text-xs font-semibold text-[#691C33] bg-[#691C33]/10 px-2 py-1 rounded-full">
-                        AVAILABLE NOW
-                      </span>
-                      <span className="text-xs font-semibold text-white bg-[#691C33] px-2 py-1 rounded-full">
-                        LIMITED SEATS
-                      </span>
+              return (
+                <motion.div
+                  key={program.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.08 }}
+                  className={`relative rounded-2xl overflow-hidden border-2 shadow-lg flex flex-col ${
+                    isLocked
+                      ? "bg-white border-[#691C33]/15"
+                      : "bg-white border-[#691C33]/10"
+                  }`}
+                >
+                  {/* Video Preview */}
+                  <button
+                    onClick={() =>
+                      openVideo(program.title, program.video, program.thumbnail)
+                    }
+                    className="relative aspect-video w-full group overflow-hidden bg-[#2b0a15]"
+                    aria-label={`Play ${program.title} preview`}
+                  >
+                    <Image
+                      src={program.thumbnail}
+                      alt={program.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+
+                    {/* Dark overlay */}
+                    <div className="absolute inset-0 bg-black/35 group-hover:bg-black/45 transition-colors" />
+
+                    {/* Badge top-left */}
+                    {program.badge && (
+                      <div
+                        className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider z-10 ${
+                          isLocked
+                            ? "bg-[#691C33]/10 text-[#691C33]"
+                            : "bg-[#691C33] text-white"
+                        }`}
+                      >
+                        {program.badge}
+                      </div>
+                    )}
+
+                    {/* Discount badge top-right */}
+                    {program.discount && !isLocked && (
+                      <div className="absolute top-3 right-3 bg-white text-[#691C33] px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider z-10">
+                        {program.discount}
+                      </div>
+                    )}
+
+                    {/* Lock overlay */}
+                    {isLocked && (
+                      <div className="absolute top-3 right-3 bg-[#691C33] text-white p-2 rounded-full z-10">
+                        <Lock className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+
+                    {/* Play button */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/25 backdrop-blur-sm border-2 border-white/60 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Play className="w-6 h-6 md:w-7 md:h-7 text-white fill-white ml-0.5" />
+                      </div>
                     </div>
+
+                    {/* Bottom info strip */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 md:p-4 text-left">
+                      <div className="flex items-center gap-2 text-white">
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-xs md:text-sm font-semibold truncate">
+                          {program.level} · {program.duration}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Card Body */}
+                  <div className="p-5 md:p-6 flex flex-col flex-1">
                     <h3
-                      className={`text-xl md:text-4xl font-bold text-[#691C33] mb-2 ${gothamOffice.className}`}
+                      className={`text-lg md:text-xl font-bold text-[#691C33] mb-3 leading-snug ${gothamOffice.className}`}
                     >
-                      {commercialCourse.title}
+                      {program.title}
                     </h3>
-                    <p className="text-[#691C33]/70 text-sm md:text-lg mb-4 md:mb-6 leading-relaxed">
-                      {commercialCourse.description}
+
+                    <p className="text-sm md:text-base text-[#691C33] leading-relaxed mb-5">
+                      {program.description}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-2 md:gap-4 text-[#691C33]/70 text-xs md:text-base">
-                      <div className="flex items-center">
-                        <Clock className="w-3 h-3 md:w-5 md:h-5 mr-1 md:mr-2 text-[#691C33]" />
-                        {commercialCourse.duration}
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="w-3 h-3 md:w-5 md:h-5 mr-1 md:mr-2 text-[#691C33]" />
-                        Small Class Sizes
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center md:text-right mt-2 md:mt-0">
-                    <div className="text-xs md:text-sm text-[#691C33]/70">
-                      One-Time Investment
-                    </div>
-                    <div className="text-2xl md:text-4xl font-bold text-[#691C33]">
-                      {commercialCourse.price}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div className="space-y-3 md:space-y-4 mb-4 md:mb-8 relative z-10">
-                  <h4
-                    className={`text-base md:text-xl font-bold text-[#691C33] ${gothamOffice.className}`}
-                  >
-                    What You'll Master
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                    {commercialCourse.features.map((feature, index) => (
-                      <motion.div
-                        key={feature}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="flex items-start gap-2 md:gap-3 p-2 md:p-3 rounded-lg bg-[#691C33]/5"
-                      >
-                        <CheckCircle className="w-3 h-3 md:w-5 md:h-5 text-[#691C33] flex-shrink-0 mt-0.5" />
-                        <span className="text-[#691C33] text-xs md:text-base">
-                          {feature}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CTA Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-gradient-to-r from-[#691C33] to-[#8B2846] text-white py-2 md:py-4 rounded-lg md:rounded-xl font-semibold text-sm md:text-lg flex items-center justify-center gap-1 md:gap-3 shadow-lg relative z-10"
-                >
-                  <span>ENROLL NOW - {commercialCourse.price}</span>
-                  <ChevronRight className="w-3 h-3 md:w-5 md:h-5" />
-                </motion.button>
-              </div>
-
-              {/* Course Levels */}
-              <div className="space-y-3 md:space-y-6">
-                <h4
-                  className={`text-lg md:text-2xl font-bold text-[#691C33] ${gothamOffice.className}`}
-                >
-                  Course Structure - 2 Weeks
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  {commercialCourse.levels.map((level, index) => (
-                    <motion.div
-                      key={level.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="bg-white rounded-lg md:rounded-xl p-3 md:p-6 border border-[#691C33]/10 shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2 md:mb-3">
-                        <div>
-                          <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#691C33]"></div>
-                            <span className="text-xs font-semibold text-[#691C33]">
-                              {level.duration}
-                            </span>
-                          </div>
-                          <h5 className="font-bold text-[#691C33] text-base md:text-xl">
-                            {level.title}
-                          </h5>
-                          <p className="text-[#691C33]/70 text-xs md:text-base mt-1 md:mt-2">
-                            {level.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 md:gap-2 mt-2 md:mt-4">
-                        {level.features.map((feature, i) => (
-                          <span
-                            key={i}
-                            className="text-xs text-[#691C33] bg-[#691C33]/10 px-1.5 md:px-2 py-0.5 md:py-1 rounded-full"
-                          >
+                    {/* Features */}
+                    <div className="space-y-2 mb-5 flex-1">
+                      {program.features.map((feature, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start gap-2.5 text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4 text-[#691C33] flex-shrink-0 mt-0.5" />
+                          <span className="text-[#691C33] leading-relaxed">
                             {feature}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
+                    </div>
 
-                      {/* Video Preview */}
-                      <div className="mt-3 md:mt-4">
-                        <button
-                          onClick={() => handlePlayVideo(level.video)}
-                          className="relative w-full aspect-video rounded-lg md:rounded-xl overflow-hidden bg-gradient-to-br from-[#691C33]/10 to-[#8B2846]/10 group"
-                        >
-                          <div className="absolute inset-0">
-                            <Image
-                              src={level.thumbnail}
-                              alt={level.title}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                          </div>
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                              <Play className="w-3 h-3 md:w-4 md:h-4 text-white fill-white ml-0.5" />
+                    {/* Price row */}
+                    <div className="pt-4 border-t border-[#691C33]/10">
+                      {!isLocked && program.price ? (
+                        <>
+                          <div className="flex items-end justify-between gap-3 mb-4">
+                            <div>
+                              <div className="text-[10px] font-bold text-[#691C33]/70 uppercase tracking-wider mb-0.5">
+                                Course Fee
+                              </div>
+                              <div className="flex items-baseline gap-2 flex-wrap">
+                                <span className="text-2xl md:text-3xl font-bold text-[#691C33]">
+                                  {program.price}
+                                </span>
+                                {program.originalPrice && (
+                                  <span className="text-sm text-[#691C33]/50 line-through">
+                                    {program.originalPrice}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[10px] font-bold text-[#691C33]/70 uppercase tracking-wider mb-0.5">
+                                Registration
+                              </div>
+                              <div className="text-base font-bold text-[#691C33]">
+                                FREE
+                              </div>
                             </div>
                           </div>
-                          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                            Watch Preview
+
+                          <button
+                            onClick={() =>
+                              (window.location.href = "/enrollment")
+                            }
+                            className="w-full bg-[#691C33] text-white py-3.5 rounded-xl font-semibold text-sm md:text-base flex items-center justify-center gap-2 hover:bg-[#691C33]/90 transition-colors"
+                          >
+                            <span>ENROLL NOW</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <div className="text-[10px] font-bold text-[#691C33]/70 uppercase tracking-wider mb-0.5">
+                                Availability
+                              </div>
+                              <div className="text-base font-bold text-[#691C33]">
+                                Coming Soon
+                              </div>
+                            </div>
+                            <Lock className="w-5 h-5 text-[#691C33]" />
                           </div>
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Included Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-[#691C33]/5 to-[#8B2846]/5 rounded-xl md:rounded-3xl p-4 md:p-8 border border-[#691C33]/10"
-            >
-              <div className="text-center mb-4 md:mb-8">
-                <h4
-                  className={`text-lg md:text-2xl font-bold text-[#691C33] mb-2 ${gothamOffice.className}`}
-                >
-                  Everything Included
-                </h4>
-                <p className="text-[#691C33]/70 text-sm md:text-base max-w-2xl mx-auto">
-                  Your investment includes complete access to all resources,
-                  tools, and support.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
-                {commercialCourse.included.map((feature, index) => (
-                  <motion.div
-                    key={feature}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex items-center gap-2 md:gap-3 p-2 md:p-4 bg-white rounded-lg border border-[#691C33]/10"
-                  >
-                    <CheckCircle className="w-3 h-3 md:w-5 md:h-5 text-[#691C33] flex-shrink-0" />
-                    <span className="text-[#691C33] font-medium text-xs md:text-sm">
-                      {feature}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                          <button className="w-full bg-[#691C33]/10 text-[#691C33] py-3.5 rounded-xl font-semibold text-sm md:text-base hover:bg-[#691C33]/20 transition-colors">
+                            JOIN WAITLIST
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
-        ) : (
-          <motion.div
-            key="art"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6 md:space-y-12"
-          >
-            {/* Art Series Header */}
-            <div className="text-center">
+        </AnimatePresence>
+
+        {/* What's Included — every program */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-10 md:mb-14"
+        >
+          <div className="bg-[#691C33] rounded-2xl md:rounded-3xl p-6 md:p-10">
+            <div className="text-center mb-6 md:mb-8">
               <h3
-                className={`text-xl md:text-4xl font-bold text-[#691C33] mb-2 md:mb-4 ${gothamOffice.className}`}
+                className={`text-xl md:text-3xl font-bold text-white mb-2 ${italiana.className}`}
               >
-                Complete Perfumery Artistry Training
+                Included With Every Program
               </h3>
-              <p className="text-[#691C33]/70 text-sm md:text-xl max-w-3xl mx-auto">
-                Master the art of perfume creation through our comprehensive
-                three-level series, launching soon.
+              <p className="text-white/90 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+                Regardless of which program you choose, these are always part of
+                your enrollment.
               </p>
             </div>
 
-            {/* Art Series Levels */}
-            <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-              {artSeries.levels.map((level, index) => {
-                const Icon = level.icon;
-                return (
-                  <motion.div
-                    key={level.level}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.2 }}
-                    className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 border-2 border-[#691C33]/10 hover:border-[#691C33]/30 transition-all shadow-lg hover:shadow-xl"
-                  >
-                    {/* Level Header */}
-                    <div className="flex items-start md:items-center justify-between mb-3 md:mb-4">
-                      <div className="flex items-start gap-2 md:gap-3">
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#691C33]/10 flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-4 h-4 md:w-5 md:h-5 text-[#691C33]" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-semibold text-[#691C33] bg-[#691C33]/10 px-2 py-1 rounded-full">
-                            {level.level}
-                          </div>
-                          <h4 className="font-bold text-[#691C33] text-base md:text-lg mt-1">
-                            {level.title}
-                          </h4>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Level Info */}
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="flex items-center text-[#691C33]/70 text-xs md:text-sm">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 text-[#691C33]" />
-                        {level.duration}
-                      </div>
-
-                      <p className="text-[#691C33]/70 text-xs md:text-sm leading-relaxed">
-                        {level.description}
-                      </p>
-
-                      {/* Features */}
-                      <div className="space-y-1 md:space-y-2">
-                        {level.features.slice(0, 3).map((feature, i) => (
-                          <div
-                            key={i}
-                            className="flex items-start gap-1 md:gap-2"
-                          >
-                            <div className="w-3 h-3 md:w-4 md:h-4 rounded-full bg-[#691C33]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <CheckCircle className="w-1.5 h-1.5 md:w-2 md:h-2 text-[#691C33]" />
-                            </div>
-                            <span className="text-[#691C33] text-xs md:text-sm">
-                              {feature}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Video Preview */}
-                      <div className="mt-2 md:mt-3">
-                        <button
-                          onClick={() => handlePlayVideo(level.video)}
-                          className="relative w-full aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-[#691C33]/10 to-[#8B2846]/10 group"
-                        >
-                          <div className="absolute inset-0">
-                            <Image
-                              src={level.thumbnail}
-                              alt={level.title}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 100vw, 33vw"
-                            />
-                          </div>
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                              <Play className="w-3 h-3 text-white fill-white ml-0.5" />
-                            </div>
-                          </div>
-                        </button>
-                      </div>
-
-                      {/* Status Badge */}
-                      <div className="pt-3 md:pt-4 border-t border-[#691C33]/10">
-                        <div className="flex items-center justify-between">
-                          <div className="text-base md:text-lg font-bold text-[#691C33]">
-                            {level.price}
-                          </div>
-                          <div className="bg-[#691C33]/10 text-[#691C33] text-xs px-2 md:px-3 py-1 rounded-full">
-                            COMING SOON
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {[
+                {
+                  icon: BookOpen,
+                  title: "Student Workbook",
+                  desc: "Full handbook & worksheets",
+                },
+                {
+                  icon: Award,
+                  title: "Certificate",
+                  desc: "Of completion & recognition",
+                },
+                {
+                  icon: Users,
+                  title: "Class Group",
+                  desc: "WhatsApp community & support",
+                },
+                {
+                  icon: Layers,
+                  title: "Lifetime Access",
+                  desc: "Updates & resource library",
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="bg-white/10 border border-white/20 rounded-2xl p-4 md:p-5"
+                >
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center mb-3">
+                    <item.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                  </div>
+                  <div className="text-white font-bold text-sm md:text-base mb-1">
+                    {item.title}
+                  </div>
+                  <div className="text-white/85 text-xs md:text-sm leading-relaxed">
+                    {item.desc}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Included Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="bg-gradient-to-r from-[#691C33]/5 to-[#8B2846]/5 rounded-xl md:rounded-3xl p-4 md:p-8 border border-[#691C33]/10"
-            >
-              <div className="text-center mb-3 md:mb-8">
-                <h4
-                  className={`text-lg md:text-2xl font-bold text-[#691C33] mb-1 md:mb-2 ${gothamOffice.className}`}
-                >
-                  All Three Levels Include
-                </h4>
-                <p className="text-[#691C33]/70 text-sm md:text-base max-w-2xl mx-auto">
-                  Comprehensive resources and support throughout your perfumery
-                  journey.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
-                {artSeries.included.map((feature, index) => (
-                  <motion.div
-                    key={feature}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex flex-col items-center text-center p-2 md:p-4 bg-white rounded-lg border border-[#691C33]/10"
-                  >
-                    <CheckCircle className="w-3 h-3 md:w-5 md:h-5 text-[#691C33] mb-1 md:mb-2" />
-                    <span className="text-[#691C33] font-medium text-xs md:text-sm">
-                      {feature}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Waitlist CTA */}
-              <div className="mt-4 md:mt-8 p-4 md:p-6 bg-white rounded-lg md:rounded-xl border border-[#691C33]/20">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
-                  <div className="text-center md:text-left">
-                    <h5 className="font-bold text-[#691C33] text-base md:text-lg mb-1">
-                      Be the First to Know
-                    </h5>
-                    <p className="text-[#691C33]/70 text-xs md:text-sm">
-                      Join the waitlist for early access and exclusive launch
-                      offers
-                    </p>
+            <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-white/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-white font-bold text-sm md:text-base">
+                    No Hidden Fees
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-[#691C33] text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow text-sm md:text-base"
-                  >
-                    JOIN WAITLIST
-                  </motion.button>
+                  <div className="text-white/85 text-xs md:text-sm">
+                    One-time course payment · registration always free
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Payment Options */}
-        {selectedOption === "commercial" && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-8 md:mt-12"
-          >
-            <div className="bg-gradient-to-r from-[#691C33] to-[#8B2846] rounded-xl md:rounded-3xl p-4 md:p-8 text-white">
-              <div className="text-center mb-4 md:mb-8">
-                <Award className="w-8 h-8 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 text-white/80" />
-                <h3
-                  className={`text-xl md:text-4xl font-bold mb-2 md:mb-3 ${italiana.className}`}
-                >
-                  Simple One-Time Investment
-                </h3>
-                <p className="text-white/80 text-sm md:text-base max-w-2xl mx-auto">
-                  Pay once and gain lifetime access to all course materials,
-                  resources, and our alumni network.
-                </p>
-              </div>
-
-              {/* Single Payment Highlight */}
-              <motion.div
-                initial={{ scale: 0.95 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
-                className="bg-white/10 backdrop-blur-sm rounded-lg md:rounded-2xl p-4 md:p-8 border border-white/20 max-w-3xl mx-auto"
+              <button
+                onClick={() => (window.location.href = "/enrollment")}
+                className="w-full sm:w-auto bg-white text-[#691C33] px-6 py-3.5 rounded-xl font-semibold text-sm md:text-base hover:bg-white/95 transition-colors whitespace-nowrap"
               >
-                <div className="flex items-center justify-center gap-3 md:gap-4 mb-4 md:mb-6">
-                  <Shield className="w-5 h-5 md:w-8 md:h-8 text-green-300" />
-                  <Gift className="w-5 h-5 md:w-8 md:h-8 text-yellow-300" />
-                  <Sparkles className="w-5 h-5 md:w-8 md:h-8 text-blue-300" />
-                </div>
-
-                <div className="text-center mb-4 md:mb-6">
-                  <div className="text-2xl md:text-5xl font-bold mb-1 md:mb-2">
-                    {commercialCourse.price}
-                  </div>
-                  <div className="text-white/80 text-sm md:text-base">
-                    One-Time Payment • Complete Access
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-8">
-                  {[
-                    "No monthly commitments or hidden fees",
-                    "Immediate access to all course modules",
-                    "Professional certificate upon completion",
-                    "Priority business support included",
-                    "Lifetime updates to materials",
-                    "Exclusive supplier discounts",
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-start">
-                      <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 text-green-300 mt-0.5 flex-shrink-0" />
-                      <span className="text-white/90 text-xs md:text-sm">
-                        {item}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-full bg-white text-[#691C33] py-3 md:py-4 rounded-lg md:rounded-xl font-bold text-sm md:text-lg hover:shadow-xl transition-shadow"
-                >
-                  PAY IN FULL & ENROLL NOW
-                </motion.button>
-              </motion.div>
+                START ENROLLMENT
+              </button>
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
       </div>
 
       {/* Video Modal */}
-      {showVideoModal && (
-        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-4xl lg:max-w-6xl bg-black rounded-lg md:rounded-2xl overflow-hidden">
-            {/* Close Button */}
-            <button
-              onClick={handleCloseModal}
-              className="absolute top-2 md:top-4 right-2 md:right-4 z-10 w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+      <AnimatePresence>
+        {showVideoModal && activeVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-0 md:p-4"
+          >
+            <div
+              ref={videoContainerRef}
+              className="relative w-full h-full md:w-full md:h-auto md:max-w-5xl bg-black md:rounded-2xl overflow-hidden"
             >
-              <X className="w-4 h-4 md:w-5 md:h-5" />
-            </button>
-
-            {/* Video Container */}
-            <div className="relative aspect-video">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-contain"
-                controls={false}
-                playsInline
-                muted={isVideoMuted}
+              <button
+                onClick={closeVideo}
+                className="absolute top-4 right-4 z-20 w-11 h-11 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center text-white hover:bg-white/25 transition-colors"
+                aria-label="Close"
               >
-                <source src="" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+                <X className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
 
-              {/* Custom Controls Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 md:p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 md:gap-4">
-                    {/* Play/Pause Button */}
-                    <button
-                      onClick={toggleVideoPlay}
-                      className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#8B2846] transition-colors"
-                    >
-                      {isVideoPlaying ? (
-                        <div className="flex items-center justify-center w-3 h-3 md:w-4 md:h-4">
-                          <div className="w-0.5 h-3 md:h-4 bg-white mx-0.5"></div>
-                          <div className="w-0.5 h-3 md:h-4 bg-white mx-0.5"></div>
-                        </div>
-                      ) : (
-                        <Play className="w-3 h-3 md:w-4 md:h-4 text-white fill-white ml-0.5" />
-                      )}
-                    </button>
+              <div className="relative w-full h-full">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-contain"
+                  controls={false}
+                  poster={activeVideo.poster}
+                  onEnded={handleVideoEnd}
+                  playsInline
+                  muted={isVideoMuted}
+                >
+                  <source src={activeVideo.src} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
 
-                    {/* Mute/Unmute Button */}
-                    <button
-                      onClick={toggleMute}
-                      className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
-                    >
-                      {isVideoMuted ? (
-                        <VolumeX className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      ) : (
-                        <Volume2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      )}
-                    </button>
+                {/* Controls */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 md:p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 md:gap-4">
+                      <button
+                        onClick={toggleVideoPlay}
+                        className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-[#691C33] flex items-center justify-center hover:bg-[#691C33]/90 transition-colors flex-shrink-0"
+                        aria-label={isVideoPlaying ? "Pause" : "Play"}
+                      >
+                        {isVideoPlaying ? (
+                          <Pause className="w-5 h-5 text-white fill-white" />
+                        ) : (
+                          <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                        )}
+                      </button>
 
-                    {/* Video Info */}
-                    <div className="ml-2 md:ml-4">
-                      <h3 className="text-white font-semibold text-sm md:text-base">
-                        {selectedOption === "commercial"
-                          ? commercialCourse.title
-                          : artSeries.title}
-                      </h3>
+                      <button
+                        onClick={toggleMute}
+                        className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors flex-shrink-0"
+                        aria-label={isVideoMuted ? "Unmute" : "Mute"}
+                      >
+                        {isVideoMuted ? (
+                          <VolumeX className="w-5 h-5 text-white" />
+                        ) : (
+                          <Volume2 className="w-5 h-5 text-white" />
+                        )}
+                      </button>
+
+                      <div className="hidden md:block ml-2 min-w-0">
+                        <h3 className="text-white font-semibold text-base truncate">
+                          {activeVideo.title}
+                        </h3>
+                      </div>
                     </div>
+
+                    <button
+                      onClick={toggleFullscreen}
+                      className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors flex-shrink-0"
+                      aria-label="Fullscreen"
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="w-5 h-5 text-white" />
+                      ) : (
+                        <Maximize2 className="w-5 h-5 text-white" />
+                      )}
+                    </button>
                   </div>
 
-                  {/* Fullscreen Button */}
-                  <button
-                    onClick={() => {
-                      const container = document.querySelector(
-                        ".video-modal-container"
-                      );
-                      if (container?.requestFullscreen) {
-                        container.requestFullscreen();
-                      }
-                    }}
-                    className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
-                  >
-                    <Maximize2 className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                  </button>
+                  <div className="md:hidden mt-3">
+                    <h3 className="text-white font-semibold text-sm truncate">
+                      {activeVideo.title}
+                    </h3>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };
